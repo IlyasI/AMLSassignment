@@ -11,10 +11,7 @@ from keras.applications.resnet50 import preprocess_input
 from keras.preprocessing import image
 from sklearn import cluster, decomposition, manifold, pipeline
 
-
-"""This function returns a dataframe with two columns:
-id - this is the image id, e.g. integers from 1 to 5000
-image - this is the """
+logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.INFO)
 
 
 """This function will move all files contained in sub-directories of
@@ -287,35 +284,51 @@ def build_filtered_dataframe(
     return filtered_df
 
 
-logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.INFO)
+def run_image_filtering_from_scratch():
+    reset_image_subdirs()
 
-reset_image_subdirs()
+    features_df = get_features(
+        network="resnet50", pooling="max", images_path="./images", num_images=5000
+    )
+    print(features_df.head())
+    results_df = map_features_to_2d_plane(features_df)
+    plot_kmeans_elbow_method(
+        results_df, max_clusters=15, plt_save_dir="./generated_plots/"
+    )
+    image_clusters = cluster_images(results_df, n_clusters=5)
+    plot_clusters(results_df, image_clusters, plt_save_dir="./generated_plots/")
+    attribute_list_df = get_attributes_clusters_df(
+        image_clusters,
+        attribute_list_path="./attribute_list.csv",
+        csv_save_dir="./generated_csv/",
+        save_to_csv=True,
+    )
+    # image number 4 is a scenery image, all similar images will be filtered
+    filtered_df = build_filtered_dataframe(
+        attribute_list_df=attribute_list_df,
+        image_num_to_filter=4,
+        move_filtered=True,
+        save_to_csv=True,
+        csv_save_dir="./generated_csv/",
+        images_path="./images",
+        removed_images_path="./images/removed/",
+    )
+    print(filtered_df.head())
 
-features_df = get_features(
-    network="resnet50", pooling="max", images_path="./images", num_images=5000
-)
-print(features_df.head())
-results_df = map_features_to_2d_plane(features_df)
-plot_kmeans_elbow_method(results_df, max_clusters=15, plt_save_dir="./generated_plots/")
-image_clusters = cluster_images(results_df, n_clusters=5)
-plot_clusters(results_df, image_clusters, plt_save_dir="./generated_plots/")
-attribute_list_df = get_attributes_clusters_df(
-    image_clusters,
-    attribute_list_path="./attribute_list.csv",
-    csv_save_dir="./generated_csv/",
-    save_to_csv=True,
-)
-# image number 4 is a scenery image, all similar images will be filtered
-filtered_df = build_filtered_dataframe(
-    attribute_list_df=attribute_list_df,
-    image_num_to_filter=4,
-    move_filtered=True,
-    save_to_csv=True,
-    csv_save_dir="./generated_csv/",
-    images_path="./images",
-    removed_images_path="./images/removed/",
-)
-print(filtered_df.head())
 
-# attribute_list_df = pd.read_csv('./generated_csv/attribute_list_w_clusters.csv')
+def run_image_filtering_from_csv():
+    attribute_list_df = pd.read_csv("./generated_csv/attribute_list_w_clusters.csv")
+    # image number 4 is a scenery image, all similar images will be filtered
+    filtered_df = build_filtered_dataframe(
+        attribute_list_df=attribute_list_df,
+        image_num_to_filter=4,
+        move_filtered=True,
+        save_to_csv=True,
+        csv_save_dir="./generated_csv/",
+        images_path="./images",
+        removed_images_path="./images/removed/",
+    )
+    print(filtered_df.head())
 
+
+run_image_filtering_from_csv()
