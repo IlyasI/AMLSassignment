@@ -253,7 +253,7 @@ def cnn_classifier(
         test_path,
         class_mode=class_mode,
         optimizer="adam",
-        model_save_path="./trained_models/",
+        model_save_path="./trained_models/"+row_name+"/",
         load_trained_model=load_trained_model,
         trained_model_path=trained_model_path,
         target_size=target_size,
