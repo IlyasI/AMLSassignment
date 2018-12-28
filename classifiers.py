@@ -336,9 +336,9 @@ def cnn_classifier(
 
 
 cnn_classifier(
-    row_name='smiling',
+    row_name='eyeglasses',
     load_trained_model=False,
     trained_model_path="",
-    create_symlinks=False,
+    create_symlinks=True,
     target_size=(128, 128),
 )
