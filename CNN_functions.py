@@ -14,7 +14,6 @@ from keras.preprocessing.image import (
     img_to_array,
     load_img,
 )
-from sklearn.preprocessing import OneHotEncoder
 
 logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.INFO)
 
@@ -191,7 +190,7 @@ def symlink_classes_images(
 With a fully-connected dense layer near the output
 If the current classification task is binary, the final output layer will be a sigmoid function and binary_crossentropy will be used as the loss
 function.
-if it is multiclass, then the final output layer will be softmax and categorical_crossentropy will be used as the loss function.
+if it is categorical, then the final output layer will be softmax and categorical_crossentropy will be used as the loss function.
 
 The general structure of a convolutional neural network on which this network is based is 
 described in more detail here: https://www.nature.com/articles/nature14539
@@ -202,6 +201,7 @@ which in turn is a less deep form of the ConvNet-A architecture defined in this 
 https://arxiv.org/pdf/1409.1556.pdf 
 which is also given as an example here: http://cs231n.github.io/convolutional-networks/
 
+Binary Classification Network Architecture:
 _________________________________________________________________
 Layer (type)                 Output Shape              Param #
 =================================================================
@@ -245,9 +245,9 @@ _________________________________________________________________
 parameters:
 'optimizer': 'adam' or 'rmsprop', which optimization algorithm to use to train the network
               both Adam and RMSProp have good performance.
-'class_mode': 'binary' or 'multiclass', use 'binary' for binary classification problems
-              and 'multiclass' for multi-class classification problems.
-'multiclass_n_classes': integer which defines the number of classes if 'class_mode' is set to 'multiclass'
+'class_mode': 'binary' or 'categorical', use 'binary' for binary classification problems
+              and 'categorical' for multi-class classification problems.
+'categorical_n_classes': integer which defines the number of classes if 'class_mode' is set to 'categorical'
 'input_shape': input shape of the image RGB values
 'channels_first': boolean, if True will use Theano ordering of input shape, where the number of channels 
                   comes first, e.g. (3, 128, 128). If false will use Tensorflow ordering e.g. (128, 128, 3)
@@ -257,7 +257,7 @@ parameters:
 def get_cnn_model(
     optimizer="adam",
     class_mode="binary",
-    multiclass_n_classes=7,
+    categorical_n_classes=6,
     input_shape=(3, 128, 128),
     channels_first=True,
 ):
@@ -366,19 +366,19 @@ def get_cnn_model(
     # If this is a binary classification problem, the final output layer will be
     # a single neuron dense layer with sigmoid activation, to map the weights to a single
     # output value, corresponding to a class value of 0 or 1.
-    # Further, the loss is set to binary crotrain_classifierssentropy.
+    # Further, the loss is set to binary crossentropy.
     if class_mode == "binary":
         model.add(Dense(units=1, activation="sigmoid"))
 
         model.compile(
             loss="binary_crossentropy", optimizer=optimizer, metrics=["accuracy"]
         )
-    # If this is a multiclass problem, instead we will use a dense layer with 7 neurons,
-    # with softmax regression, which is more appropriate for multiclass problems. Each neuron
+    # If this is a multi-class problem, instead we will use a dense layer with 6 neurons,
+    # with softmax regression, which is more appropriate for multi-class problems. Each neuron
     # in this dense layer corresponds to one of the classes.
     # Further, the loss is set to categorical crossentropy.
-    elif class_mode == "multiclass":
-        model.add(Dense(units=multiclass_n_classes, activation="softmax"))
+    elif class_mode == "categorical":
+        model.add(Dense(units=categorical_n_classes, activation="softmax"))
 
         model.compile(
             loss="categorical_crossentropy", optimizer=optimizer, metrics=["accuracy"]
@@ -426,7 +426,7 @@ parameters:
                is the size expected as input to the CNN model.
 'class_mode': 'binary' or 'categorical', determines the type of label arrays returned
               'binary' returned 1D binary labels, 'categorical' returns 2D one-hot encoded labels
-              use binary if it is a binary classification problem and categorical if it is multiclass
+              use binary if it is a binary classification problem and categorical if it is multi-class.
 'batch_size': size of the batches of data generated, 32 is the expected size for our CNN model
 'shuffle': boolean, if True the generated data will be shuffled
 'seed': seed to use if randomly shuffling

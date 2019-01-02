@@ -1,0 +1,158 @@
+2018-12-29 13:07:36.106365: I tensorflow/core/platform/cpu_feature_guard.cc:141] Your CPU supports instructions that this TensorFlow binary was not compiled to use: AVX2 FMA
+Found 2341 images belonging to 6 classes.
+Found 780 images belonging to 6 classes.
+INFO:Train steps: 73.15625|Validation steps: 24.375
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #
+=================================================================
+conv2d_1 (Conv2D)            (None, 32, 128, 128)      896
+_________________________________________________________________
+conv2d_2 (Conv2D)            (None, 32, 126, 126)      9248
+_________________________________________________________________
+max_pooling2d_1 (MaxPooling2 (None, 32, 63, 63)        0
+_________________________________________________________________
+dropout_1 (Dropout)          (None, 32, 63, 63)        0
+_________________________________________________________________
+conv2d_3 (Conv2D)            (None, 32, 63, 63)        9248
+_________________________________________________________________
+conv2d_4 (Conv2D)            (None, 32, 61, 61)        9248
+_________________________________________________________________
+max_pooling2d_2 (MaxPooling2 (None, 32, 30, 30)        0
+_________________________________________________________________
+dropout_2 (Dropout)          (None, 32, 30, 30)        0
+_________________________________________________________________
+conv2d_5 (Conv2D)            (None, 64, 30, 30)        18496
+_________________________________________________________________
+conv2d_6 (Conv2D)            (None, 64, 28, 28)        36928
+_________________________________________________________________
+max_pooling2d_3 (MaxPooling2 (None, 64, 14, 14)        0
+_________________________________________________________________
+dropout_3 (Dropout)          (None, 64, 14, 14)        0
+_________________________________________________________________
+flatten_1 (Flatten)          (None, 12544)             0
+_________________________________________________________________
+dense_1 (Dense)              (None, 512)               6423040
+_________________________________________________________________
+dropout_4 (Dropout)          (None, 512)               0
+_________________________________________________________________
+dense_2 (Dense)              (None, 6)                 3078
+=================================================================
+Total params: 6,510,182
+Trainable params: 6,510,182
+Non-trainable params: 0
+_________________________________________________________________
+INFO:None
+Epoch 1/50
+73/73 [============================>.] - ETA: 0s - loss: 1.4401 - acc: 0.3968^C^C^C^C^C^C^C^CTraceback (most recent call last):
+  File "classifiers.py", line 350, in <module>
+    target_size=(128, 128),
+  File "classifiers.py", line 339, in cnn_classifier
+    target_size=target_size,
+  File "classifiers.py", line 205, in train_classifier
+    class_weight="auto",
+  File "/home/ilyas/dev/environments/AMLSassignment/lib/python3.6/site-packages/keras/legacy/interfaces.py", line 91, in wrapper
+    return func(*args, **kwargs)
+  File "/home/ilyas/dev/environments/AMLSassignment/lib/python3.6/site-packages/keras/engine/training.py", line 1418, in fit_generator
+    initial_epoch=initial_epoch)
+  File "/home/ilyas/dev/environments/AMLSassignment/lib/python3.6/site-packages/keras/engine/training_generator.py", line 234, in fit_generator
+    workers=0)
+  File "/home/ilyas/dev/environments/AMLSassignment/lib/python3.6/site-packages/keras/legacy/interfaces.py", line 91, in wrapper
+    return func(*args, **kwargs)
+  File "/home/ilyas/dev/environments/AMLSassignment/lib/python3.6/site-packages/keras/engine/training.py", line 1472, in evaluate_generator
+    verbose=verbose)
+  File "/home/ilyas/dev/environments/AMLSassignment/lib/python3.6/site-packages/keras/engine/training_generator.py", line 346, in evaluate_generator
+    outs = model.test_on_batch(x, y, sample_weight=sample_weight)
+  File "/home/ilyas/dev/environments/AMLSassignment/lib/python3.6/site-packages/keras/engine/training.py", line 1256, in test_on_batch
+    outputs = self.test_function(ins)
+  File "/home/ilyas/dev/environments/AMLSassignment/lib/python3.6/site-packages/keras/backend/tensorflow_backend.py", line 2715, in __call__
+    return self._call(inputs)
+  File "/home/ilyas/dev/environments/AMLSassignment/lib/python3.6/site-packages/keras/backend/tensorflow_backend.py", line 2675, in _call
+    fetched = self._callable_fn(*array_vals)
+  File "/home/ilyas/dev/environments/AMLSassignment/lib/python3.6/site-packages/tensorflow/python/client/session.py", line 1439, in __call__
+    run_metadata_ptr)
+KeyboardInterrupt
+^C
+(AMLSassignment) ilyas@ilyas-GP62MVR-7RFX:~/dev/AMLSassignment$ ^C
+(AMLSassignment) ilyas@ilyas-GP62MVR-7RFX:~/dev/AMLSassignment$ ^C
+(AMLSassignment) ilyas@ilyas-GP62MVR-7RFX:~/dev/AMLSassignment$ python classifiers.py
+Using TensorFlow backend.
+2018-12-29 13:12:01.203609: I tensorflow/core/platform/cpu_feature_guard.cc:141] Your CPU supports instructions that this TensorFlow binary was not compiled to use: AVX2 FMA
+Found 780 images belonging to 6 classes.
+913/913 [==============================] - 46s 51ms/step
+Validation Loss:  0.3998163040638886
+Validation Accuracy:  0.8608981380065718
+Found 781 images belonging to 6 classes.
+913/913 [==============================] - 35s 39ms/step
+Test Loss:  0.3588779792833357
+Test Accuracy:  0.8795180722891566
+781/781 [==============================] - 32s 41ms/step
+[[  0   2   1   4   0   3]
+ [  0 187   0  18   0  12]
+ [  0   0 104   5   0   0]
+ [  0   2   1 177  17   2]
+ [  0   0   0  11 133   0]
+ [  0   4   0   1   2  95]]
+       filename  y_true  y_pred
+0    0/1994.png       0       3
+1    0/2766.png       0       3
+2    0/2935.png       0       1
+3    0/3187.png       0       5
+4    0/3415.png       0       5
+5    0/4264.png       0       5
+6    0/4808.png       0       3
+7    0/4816.png       0       3
+8     0/905.png       0       1
+9     0/950.png       0       2
+17   1/1113.png       1       3
+26   1/1263.png       1       3
+32   1/1350.png       1       5
+33   1/1437.png       1       3
+40   1/1538.png       1       5
+54   1/1848.png       1       3
+66   1/2100.png       1       3
+70   1/2158.png       1       3
+87   1/2481.png       1       3
+88   1/2507.png       1       5
+92   1/2562.png       1       3
+101  1/2741.png       1       3
+105  1/2784.png       1       5
+111  1/2921.png       1       5
+115  1/2980.png       1       5
+138  1/3545.png       1       5
+155  1/3970.png       1       5
+165  1/4172.png       1       3
+181  1/4460.png       1       3
+184  1/4619.png       1       5
+..          ...     ...     ...
+441  3/3318.png       3       4
+448  3/3511.png       3       1
+449  3/3512.png       3       5
+452  3/3546.png       3       4
+455   3/362.png       3       2
+459  3/3688.png       3       4
+465  3/3818.png       3       4
+468  3/3904.png       3       4
+471  3/3988.png       3       4
+492  3/4477.png       3       4
+506   3/479.png       3       5
+523   3/759.png       3       4
+564  4/1969.png       4       3
+576  4/2195.png       4       3
+579  4/2296.png       4       3
+582  4/2340.png       4       3
+594  4/2697.png       4       3
+607  4/3197.png       4       3
+619  4/3522.png       4       3
+626  4/3641.png       4       3
+630  4/3838.png       4       3
+642   4/431.png       4       3
+656  4/4683.png       4       3
+684  5/1203.png       5       1
+686  5/1238.png       5       1
+695  5/1544.png       5       1
+696  5/1575.png       5       4
+706  5/2025.png       5       4
+714  5/2608.png       5       3
+768  5/4709.png       5       1
+
+[85 rows x 3 columns]

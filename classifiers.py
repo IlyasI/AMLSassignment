@@ -1,6 +1,7 @@
 import logging
 import os
 import sys
+import csv
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -8,8 +9,7 @@ import pandas as pd
 from keras.callbacks import EarlyStopping, ReduceLROnPlateau, TensorBoard
 from keras.models import load_model
 from keras.utils import plot_model
-from sklearn.metrics import confusion_matrix
-from sklearn.utils import class_weight
+from sklearn.metrics import confusion_matrix, classification_report, accuracy_score
 
 import CNN_functions
 
@@ -25,23 +25,27 @@ def plot_training_history(history, classifier_name, plt_save_dir):
     if os.path.isdir(plt_save_dir) == False:
         os.makedirs(plt_save_dir)
 
+    plt.figure(figsize=(1,1))
+    plt.rcParams.update({'font.size': 22})
     plt.plot(history.history["acc"])
     plt.plot(history.history["val_acc"])
     plt.title(classifier_name + " Model Accuracy")
     plt.ylabel("Accuracy")
     plt.xlabel("Epoch")
-    plt.legend(["Train", "Test"], loc="upper left")
+    plt.legend(["Train", "Validation"], loc="upper left")
     plt_save_path = plt_save_dir + classifier_name + "_model_accuracy.png"
     plt.savefig(plt_save_path)
     plt.show()
 
     # Plot training & validation loss values
+    plt.figure(figsize=(1,1))
+    plt.rcParams.update({'font.size': 22})
     plt.plot(history.history["loss"])
     plt.plot(history.history["val_loss"])
     plt.title(classifier_name + " Model Loss")
     plt.ylabel("Loss")
     plt.xlabel("Epoch")
-    plt.legend(["Train", "Test"], loc="upper left")
+    plt.legend(["Train", "Validation"], loc="upper left")
     plt_save_path = plt_save_dir + classifier_name + "_model_loss.png"
     plt.savefig(plt_save_path)
     plt.show()
@@ -54,7 +58,7 @@ parameters:
 'train_path': path where the training symlinks are stored
 'validate_path': path where the validation symlinks are stored
 'test_path': path where the test symlinks are stored
-'class_mode': 'binary' or 'multiclass'
+'class_mode': 'binary' or 'categorical'
 'optimizer': 'adam' or 'rmsprop' both work well, although any optimizer included in Keras can be used
 'model_save_path': where to save the model and its weights after training
 'load_trained_model': boolean, if True will load an already trained model from the trained_model_path
@@ -103,7 +107,7 @@ def train_classifier(
         model = CNN_functions.get_cnn_model(
             optimizer=optimizer,
             class_mode=class_mode,
-            multiclass_n_classes=7,
+            categorical_n_classes=6,
             input_shape=(3,) + target_size,
             channels_first=True,
         )
@@ -111,7 +115,7 @@ def train_classifier(
         if os.path.isdir(model_save_path) == False:
             os.makedirs(model_save_path)
         # saves a plot of the model architecture
-        plot_model(model, to_file=model_save_path + "model.png", show_shapes=True)
+        plot_model(model, to_file=model_save_path + "model.png", show_shapes=True, show_layer_names=False)
         # get flow used for training
         train_gen = CNN_functions.get_flow_from_directory(
             train_datagen,
@@ -229,34 +233,53 @@ def train_classifier(
         test_datagen, test_path, target_size, class_mode, 1, False
     )
 
-    test_gen.reset()
+    #test_gen.reset()
     # test the trained model with all 913 test images:
-    test_loss = model.evaluate_generator(generator=test_gen, steps=913, verbose=1)
+    #test_loss = model.evaluate_generator(generator=test_gen, steps=913, verbose=1)
 
-    print("Test Loss: ", test_loss[0])
-    print("Test Accuracy: ", test_loss[1])
+    #print("Test Loss: ", test_loss[0])
+    #print("Test Accuracy: ", test_loss[1])
 
     test_gen.reset()
     # obtain predictions of the class of each of the 913 images in the test set:
     probabilities = model.predict_generator(test_gen, verbose=1, steps=len(test_gen))
 
-    # output_df is a dataframe that contains each images actual and predicted class
+    y_true = test_gen.classes
+    if class_mode == 'binary':
+        y_pred = np.rint(probabilities)
+    elif class_mode == 'categorical':
+        y_pred = probabilities.argmax(axis=-1)
+
+    filenames = test_gen.filenames
+    # output_df is a dataframe that contains each images actual and predicted class 
+    output_df, output_df_wrong, report, accuracy, confusion = get_metrics(y_true, y_pred, filenames)
+
+    return output_df, output_df_wrong, confusion, report, accuracy
+
+def get_metrics(y_true, y_pred, filenames):
+    # output_df is a dataframe that contains each images actual and predicted class 
     output_df = pd.DataFrame(
         {
-            "filename": test_gen.filenames,
-            "y_true": test_gen.classes,
-            "y_pred": list(map(int, np.rint(probabilities).flatten())),
+            "filename": filenames,
+            "y_true": y_true,
+            "y_pred": y_pred,
         }
     )
+    report = classification_report(y_true, y_pred)
+    print(report)
+    accuracy = accuracy_score(y_true, y_pred)
+    print(accuracy)
+
     # output_df_wrong is a dataframe of only the predictions which were incorrect:
     output_df_wrong = output_df.query("y_true != y_pred")
+    # prints the predictions of the model which were wrong:
+    print(output_df_wrong)
 
-    y_true = test_gen.classes
-    y_pred = np.rint(probabilities)
+    confusion = confusion_matrix(y_true=y_true, y_pred=y_pred)
     # print confusion matrix of the true and predicted values
-    print(confusion_matrix(y_true=y_true, y_pred=y_pred))
+    print(confusion)
 
-    return output_df_wrong
+    return output_df, output_df_wrong, report, accuracy, confusion
 
 
 """
@@ -271,6 +294,9 @@ parameters:
 
 def prepare_for_cnn(row_name):
     filteredDf = pd.read_csv("./generated_csv/attribute_list_filtered.csv")
+    #Drop rows where hair_color = -1, these are mislabeled and impact the accuracy of the trained model
+    if row_name == 'hair_color':
+        filteredDf = filteredDf[filteredDf.hair_color != -1]
     train, validate, test = CNN_functions.split_dataset_random(df=filteredDf, seed=0)
     CNN_functions.symlink_classes_images(
         train, validate, test, row_name, reset_symlinks=False
@@ -302,7 +328,7 @@ def cnn_classifier(
         )
         sys.exit(0)
     if row_name == "hair_color":
-        class_mode = "multiclass"
+        class_mode = "categorical"
     else:
         class_mode = "binary"
 
@@ -319,7 +345,7 @@ def cnn_classifier(
         prepare_for_cnn(row_name=row_name)
 
     # runs train_classifier function, which trains and evaluates the model:
-    output_df_wrong = train_classifier(
+    output_df, output_df_wrong, confusion, report, accuracy = train_classifier(
         classifier_name,
         train_path,
         validate_path,
@@ -331,14 +357,39 @@ def cnn_classifier(
         trained_model_path=trained_model_path,
         target_size=target_size,
     )
-    # prints the predictions of the model which were wrong:
-    print(output_df_wrong)
+    generate_test_predictions_csv(output_df, accuracy, row_name)
 
+def generate_test_predictions_csv(output_df, accuracy, row_name, path_append=None):
+    output_df['sort'] = output_df['filename'].str.extract('\/(\d+)\.', expand=False).astype(int)
+    output_df = output_df.sort_values('sort', ascending=True).reset_index(drop=True)
+    output_df = output_df.drop('sort', axis=1)
+    output_df.loc[output_df.y_pred==0, 'y_pred'] = -1
 
-cnn_classifier(
-    row_name='eyeglasses',
-    load_trained_model=False,
-    trained_model_path="",
-    create_symlinks=True,
+    if row_name == 'smiling':
+        task_num = 1
+    elif row_name == 'young':
+        task_num = 2
+    elif row_name == 'eyeglasses':
+        task_num=3
+    elif row_name == 'human':
+        task_num=4
+    elif row_name == 'hair_color':
+        task_num=5
+    if path_append==None:
+        csv_filename = 'task_'+str(task_num)+'.csv'
+    else:
+        csv_filename = 'task_'+str(task_num)+'_'+path_append+'.csv'
+
+    with open(csv_filename, 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow([accuracy])
+        for i in range(len(output_df)):
+            writer.writerow([output_df['filename'][i], output_df['y_pred'][i]])
+
+'''cnn_classifier(
+    row_name='young',
+    load_trained_model=True,
+    trained_model_path="/home/ilyas/dev/AMLSassignment/trained_models/young/Young_fullmodel.h5",
+    create_symlinks=False,
     target_size=(128, 128),
-)
+)'''

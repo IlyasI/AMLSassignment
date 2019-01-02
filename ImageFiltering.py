@@ -61,7 +61,7 @@ The other 2 networks are much smaller, MobileNetV2 has only 3,538,984 parameters
 Both did not get good performance, that is why the use of the much larger ResNet50 is justified.
 
 parameters:
-'network': Can be either 'resnet50', 'mobilenetv2', or 'nasnet', the default and recommended option is 'resnet50'.
+'network': Can be either 'resnet50', 'mobilenetv2', or 'nasnetmobile', the default and recommended option is 'resnet50'.
 'pooling': 'avg', or 'max', determines whether global max pooling or global average pooling will be used, both give comparable results with resnet50.
 """
 
@@ -83,6 +83,12 @@ def get_model(network="resnet50", pooling="avg"):
         model = applications.resnet50.ResNet50(
             weights="imagenet", include_top=False, pooling=pooling
         )
+    elif network == "xception":
+        # 22,910,480 parameters
+        logging.info("Xception pretrained on ImageNet selected to extract features...")
+        model = applications.xception.Xception(
+            weights="imagenet", include_top=False, pooling=pooling
+        )
     elif network == "mobilenetv2":
         # 3,538,984 parameters
         logging.info(
@@ -91,7 +97,18 @@ def get_model(network="resnet50", pooling="avg"):
         model = applications.mobilenet_v2.MobileNetV2(
             weights="imagenet", include_top=False, pooling=pooling
         )
-    elif network == "nasnet":
+    elif network == "nasnetlarge":
+        # 88,949,818 parameters
+        logging.info(
+            "NASNetLarge pretrained on ImageNet selected to extract features..."
+        )
+        model = applications.nasnet.NASNetLarge(
+            weights="imagenet",
+            include_top=False,
+            pooling=pooling,
+            input_shape=(128, 128, 3),
+        )
+    elif network == "nasnetmobile":
         # 5,326,716 parameters
         logging.info(
             "NASNetMobile pretrained on ImageNet selected to extract features..."
@@ -120,21 +137,21 @@ parameters:
 
 
 def get_features(
+    img_df,
     network="resnet50",
     pooling="avg",
     images_path="./images",
-    num_images=5000,
-    df_to_csv=True,
-    csv_save_dir="./generated_csv/",
+    df_to_pickle=True,
+    pickle_save_dir="./generated_csv/",
 ):
     model = get_model(network=network, pooling=pooling)
     image_features = []
     image_file_type = ".png"
-    # iterate over all the images (in the range provided, by default it is 1-5000)
-    for i in range(1, num_images + 1):
+    # iterate over all the images (in the dataframe provided)
+    for i, img_num in enumerate(img_df["file_name"]):
         # forms the full path to image with id 'i'
         # e.g. image_path = <images_path>/3987.png
-        image_path = os.path.join(images_path, str(i) + image_file_type)
+        image_path = os.path.join(images_path, str(img_num) + image_file_type)
         if os.path.isfile(image_path):
             logging.info("Processing image: " + image_path)
             # load image:
@@ -155,18 +172,18 @@ def get_features(
     # forms a pandas dataframe from the range of image id's (1-5000),
     # and the image_features list of numpy char arrays of each images features as formed above:
     features_df = pd.DataFrame(
-        {"id": range(1, num_images + 1), "features": image_features}
+        {"id": img_df['file_name'], "features": image_features}
     )
-    # if the df_to_csv parameter is set to true, the features_df dataframe will be saved to a csv file
-    # in the provided csv_save_dir, named for example: 'image_features_ResNet50_max.csv':
-    if df_to_csv:
-        csv_save_path = (
-            csv_save_dir + "image_features_" + network + "_" + pooling + ".csv"
+    # if the df_to_pickle parameter is set to true, the features_df dataframe will be saved to a csv file
+    # in the provided pickle_save_dir, named for example: 'image_features_ResNet50_max.csv':
+    if df_to_pickle:
+        pickle_save_path = (
+            pickle_save_dir + "image_features_" + network + "_" + pooling + ".pkl"
         )
-        if os.path.isdir(csv_save_dir) == False:
-            os.mkdir(csv_save_dir)
-        logging.info("Saving extracted features to csv: " + csv_save_path)
-        features_df.to_csv(csv_save_path, index=False)
+        if os.path.isdir(pickle_save_dir) == False:
+            os.mkdir(pickle_save_dir)
+        logging.info("Saving extracted features to pickle: " + pickle_save_path)
+        features_df.to_pickle(pickle_save_path)
 
     return features_df
 
@@ -184,11 +201,11 @@ of all the images can be visualized. """
 
 
 def pca_tsne_pipeline():
+    # sklearn PCA functions, n_components sets the number of components to keep, I used the
+    # recommended n_components=30 for T-sne
+    pca = decomposition.PCA(n_components=30)
     # sklearn TSNE function, all parameters kept at default values:
     tsne = manifold.TSNE(random_state=0, perplexity=30, early_exaggeration=12.0)
-    # sklearn PCA functions, n_components sets the number of components to keep, I used the
-    # recommended n_components=50 for T-sne
-    pca = decomposition.PCA(n_components=50)
     # returns a pipeline model consisting first of PCA, then of T-sne:
     return pipeline.Pipeline([("PCA", pca), ("T-sne", tsne)])
 
@@ -242,7 +259,7 @@ parameters:
 
 
 def plot_kmeans_elbow_method(
-    results_df, max_clusters=15, plt_save_dir="./generated_plots/"
+    results_df, max_clusters=10, plt_save_dir="./generated_plots/"
 ):
     logging.info("Plotting elbow method for k means clustering...")
     sum_of_squared_distances = []
@@ -255,12 +272,12 @@ def plot_kmeans_elbow_method(
         k_means = cluster.KMeans(n_clusters=k)
         k_means = k_means.fit(results_df_k)
         sum_of_squared_distances.append(k_means.inertia_)
-    plt.rcParams["figure.figsize"] = [10, 10]
+    plt.rcParams["figure.figsize"] = [6, 6]
     # plot the number of clusters compared with the k_means inertia:
     plt.plot(K, sum_of_squared_distances, "bx-")
     plt.xlabel("Number of clusters")
     plt.ylabel("Sum of squared distances (k-means inertia)")
-    plt.title("Elbow Method to Find Optimal Number of Clusters for K-Means")
+    plt.title("K-Means Elbow Method For Image Features")
 
     # save figure to specified save directory as 'elbow_method.png':
     plt_save_path = plt_save_dir + "elbow_method.png"
@@ -315,7 +332,7 @@ parameters:
 
 def plot_clusters(results_df, image_clusters, plt_save_dir="./generated_plots/"):
     logging.info("Plotting clusters...")
-    plt.rcParams["figure.figsize"] = [10, 10]
+    plt.rcParams["figure.figsize"] = [5, 5]
     fig, ax = plt.subplots()
     x = results_df["x"]
     y = results_df["y"]
@@ -327,6 +344,7 @@ def plot_clusters(results_df, image_clusters, plt_save_dir="./generated_plots/")
     ]
     labels = [l for c, l in clset]
     plt.legend(handles, labels)
+    plt.title("K-means clustering of image features with k=5")
 
     ax.grid(True)
     # for i, txt in enumerate(results_df['id'].values):
@@ -436,19 +454,20 @@ with no false positives either."""
 
 def run_image_filtering_from_scratch():
     reset_image_subdirs()
+    img_df = pd.read_csv("attribute_list.csv")
     # get dataframe of image features as char arrays:
     features_df = get_features(
-        network="resnet50", pooling="max", images_path="./images", num_images=5000
+        img_df=img_df, network="resnet50", pooling="max", images_path="./images"
     )
     print(features_df.head())
     # map char arrays of features to 2d plane with PCA and T-sne:
     results_df = map_features_to_2d_plane(features_df)
     # obtain elbow method plot to get n_clusters
     plot_kmeans_elbow_method(
-        results_df, max_clusters=15, plt_save_dir="./generated_plots/"
+        results_df, max_clusters=10, plt_save_dir="./generated_plots/"
     )
     # optimal n_clusters=5 from elbow method, obtain list of each images cluster label:
-    image_clusters = cluster_images(results_df, n_clusters=5)
+    image_clusters = cluster_images(results_df, n_clusters=6)
     # get color-coded plot of the image clusters:
     plot_clusters(results_df, image_clusters, plt_save_dir="./generated_plots/")
     # obtain dataframe of the attribute_list combined with the image_clusters
@@ -494,4 +513,4 @@ def run_image_filtering_from_csv():
     print(filtered_df.head())
 
 
-run_image_filtering_from_scratch()
+'''run_image_filtering_from_scratch()'''
