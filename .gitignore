@@ -5,7 +5,12 @@ __pycache__/
 
 *.h5
 .vscode/
+.ipynb_checkpoints/
+.idea/
 images/
+generated_csv/
+trained_models/
+old_files/
 
 # C extensions
 *.so

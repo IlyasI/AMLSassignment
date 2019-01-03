@@ -252,17 +252,21 @@ def train_classifier(
 
     filenames = test_gen.filenames
     # output_df is a dataframe that contains each images actual and predicted class 
-    output_df, output_df_wrong, report, accuracy, confusion = get_metrics(y_true, y_pred, filenames)
+    output_df, output_df_wrong, report, accuracy, confusion = get_metrics(y_true, y_pred, filenames, flatten_y_pred=True)
 
     return output_df, output_df_wrong, confusion, report, accuracy
 
-def get_metrics(y_true, y_pred, filenames):
+def get_metrics(y_true, y_pred, filenames, flatten_y_pred=False):
     # output_df is a dataframe that contains each images actual and predicted class 
+    if flatten_y_pred:
+        y_pred_flat = list(map(int, y_pred.flatten()))
+    else:
+        y_pred_flat = y_pred
     output_df = pd.DataFrame(
         {
             "filename": filenames,
             "y_true": y_true,
-            "y_pred": y_pred,
+            "y_pred": y_pred_flat,
         }
     )
     report = classification_report(y_true, y_pred)

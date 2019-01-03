@@ -99,7 +99,7 @@ def run_svm_classifier(
     output_df, output_df_wrong, report, accuracy, confusion = get_metrics(
         Y_test, y_pred, filenames
     )
-    # generate_test_predictions_csv(output_df, accuracy, row_name, svm=True)
+    generate_test_predictions_csv(output_df, accuracy, row_name, path_append="svm")
 
 
 def get_svm_classifier(randomized_search=True):
@@ -200,8 +200,8 @@ def transfer_learning_svm(row_name, load_features=False):
     generate_test_predictions_csv(output_df, accuracy, row_name, path_append="resnet50")
 
 
-# run_svm_classifier("human", "./svm_saved_models/", load_model=True)
-transfer_learning_svm("hair_color", load_features=True)
+run_svm_classifier("human", "./svm_saved_models/", load_model=False)
+# transfer_learning_svm("hair_color", load_features=True)
 
 # print("Classification report for classifier %s:\n%s\n"
 #      % (classifier, metrics.classification_report(Y_test, y_pred)))
