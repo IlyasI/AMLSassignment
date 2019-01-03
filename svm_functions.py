@@ -75,7 +75,7 @@ def run_svm_classifier(
 
     if load_model == False:
 
-        classifier = get_svm_classifier(randomized_search=True)
+        classifier = get_svm_classifier(randomized_search=True, n_iter=5)
 
         print("Fitting classifier...")
 
@@ -98,12 +98,12 @@ def run_svm_classifier(
     generate_test_predictions_csv(output_df, accuracy, row_name, path_append="svm")
 
 
-def get_svm_classifier(randomized_search=True):
+def get_svm_classifier(randomized_search=True, n_iter=10):
     svc = svm.SVC(gamma="scale", kernel="linear", verbose=True, class_weight="balanced")
     if randomized_search:
         parameters = {"C": expon(scale=100)}
         classifier = RandomizedSearchCV(
-            svc, parameters, n_iter=10, verbose=1, n_jobs=-1
+            svc, parameters, n_iter=n_iter, verbose=1, n_jobs=-1
         )
     else:
         classifier = svc
