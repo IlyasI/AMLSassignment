@@ -1,5 +1,0 @@
-{
-    "python.pythonPath": "/home/ilyas/dev/environments/AMLSassignment/bin/python3",
-    "git.ignoreLimitWarning": true,
-    "python.formatting.provider": "black"
-}
