@@ -10,23 +10,29 @@ from keras.applications.resnet50 import preprocess_input
 from keras.preprocessing import image
 from sklearn import cluster, decomposition, manifold, pipeline
 
+# set parameters for logging:
 logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.INFO)
 
 
-"""The reset_image_subdirs is a utility function that 
-will move all files contained in sub-directories of
-a provided parent directory to that parent directory. 
-
-Use this when you want to reset any symlinks or sorting/seperating
-done with the images, such as when you want to train the network for a
-different classification task.
-
-parameters:
-'path': should be your image parent directory
-'delete_dirs': boolean to determine whether to delete the sub-directories"""
-
-
 def reset_image_subdirs(path="./images", delete_dirs=True):
+    
+    """
+    The reset_image_subdirs is a utility function that 
+    will move all files contained in sub-directories of
+    a provided parent directory to that parent directory. 
+
+    Use this when you want to reset any symlinks or sorting/seperating
+    done with the images, such as when you want to train the network for a
+    different classification task.
+
+    Parameters:
+    'path': should be your image parent directory
+    'delete_dirs': boolean to determine whether to delete the sub-directories
+
+    Returns:
+    None
+    """
+
     walker = os.walk(path)
     # returns all sub directories of path provided
     sub_dirs = walker.__next__()[1]
@@ -49,23 +55,29 @@ def reset_image_subdirs(path="./images", delete_dirs=True):
             shutil.rmtree(dir_path)
 
 
-"""The get_model function returns a model included in Keras for image classification that was pre-trained on ImageNet. 
-There are 3 different networks that this function provides: ResNet50, a 50 layer residual network 
-from 'Deep Residual Learning for Image Recognition' 
-(https://www.cv-foundation.org/openaccess/content_cvpr_2016/html/He_Deep_Residual_Learning_CVPR_2016_paper.html)
-which has 25,636,712 network parameters in total. This is the final model I used as the shallower networks just did not
-get enough accuracy.
-
-The other 2 networks are much smaller, MobileNetV2 has only 3,538,984 parameters and NasNetMobile has only 5,326,716 parameters. 
-Both did not get good performance, that is why the use of the much larger ResNet50 is justified.
-
-parameters:
-'network': Can be either 'resnet50', 'mobilenetv2', or 'nasnetmobile', the default and recommended option is 'resnet50'.
-'pooling': 'avg', or 'max', determines whether global max pooling or global average pooling will be used, both give comparable results with resnet50.
-"""
-
-
 def get_model(network="resnet50", pooling="avg"):
+
+    """
+    The get_model function returns a model included in Keras for image classification that was pre-trained on ImageNet. 
+    There are different networks that this function provides: ResNet50, a 50 layer residual network 
+    from 'Deep Residual Learning for Image Recognition' 
+    (https://www.cv-foundation.org/openaccess/content_cvpr_2016/html/He_Deep_Residual_Learning_CVPR_2016_paper.html)
+    which has 25,636,712 network parameters in total. This is the final model I used as the shallower networks just did not
+    get enough accuracy.
+
+    MobileNetV2 has only 3,538,984 parameters and NasNetMobile has only 5,326,716 parameters. 
+    Both did not get good performance, that is why the use of the much larger ResNet50 is justified.
+
+    Two other large networks, Xception and NasNetLarge are provided for testing.
+
+    Parameters:
+    'network': Can be either 'resnet50', 'xception', 'mobilenetv2', or 'nasnetlarge' or 'nasnetmobile', the default and recommended option is 'resnet50'.
+    'pooling': 'avg', or 'max', determines whether global max pooling or global average pooling will be used, both give comparable results with resnet50.
+
+    Returns:
+    model: Keras model object of the pretrained network selected.
+    """
+
     # Pooling performed to reduce variance and computation complexity and extract low level features
     # Note, max pooling extracts important features like edges, average pooling extracts features smoothly.
 
@@ -121,20 +133,6 @@ def get_model(network="resnet50", pooling="avg"):
     return model
 
 
-"""get_features returns a pandas dataframe which has one column for image ids and
-another for the feature vector of that image. The features are extracted by using one of the
-pre-trained networks provided by the get_model function above to 'predict' them.
-
-parameters:
-'network': Can be either 'resnet50', 'mobilenetv2', or 'nasnet', the default and recommended option is 'resnet50'.
-'pooling': 'avg', or 'max', determines whether global max pooling or global average pooling will be used, both give comparable results with resnet50.
-'images_path': should be the path to the directory where your images are stores.
-'num_images': the number of images in your dataset, forms the range of id's to cycle through (e.g. 1-5000)
-'df_to_csv': Boolean that decided whether to save the dataframe of image features to a csv file, specify the save directory with the 'csv_save_dir' parameter.
-'csv_save_dir': the directory where you want the csv file of the image features to be saved, only used if 'df_to_csv' is set to True.
-"""
-
-
 def get_features(
     img_df,
     network="resnet50",
@@ -143,6 +141,24 @@ def get_features(
     df_to_pickle=True,
     pickle_save_dir="./generated_csv/",
 ):
+
+    """
+    get_features returns a pandas dataframe which has one column for image ids and
+    another for the feature vector of that image. The features are extracted by using one of the
+    pre-trained networks provided by the get_model function above to 'predict' them.
+
+    Parameters:
+    'img_df': Dataframe of the images and their labels, such as that obtained from pd.read_csv("attribute_list.csv").
+    'network': Can be either 'resnet50', 'xception', 'mobilenetv2', or 'nasnetlarge' or 'nasnetmobile', the default and recommended option is 'resnet50'.
+    'pooling': 'avg', or 'max', determines whether global max pooling or global average pooling will be used, both give comparable results with resnet50.
+    'images_path': should be the path to the directory where your images are stores.
+    'df_to_pickle': Boolean that decided whether to save the dataframe of image features to a pickle file, specify the save directory with the 'pickle_save_dir' parameter.
+    'pickle_save_dir': the directory where you want the pickle file of the image features dataframe, only used if 'pickle_to_csv' is set to True.
+
+    Returns:
+    features_df: Dataframe of each images features extracted with the chosen network.
+    """
+
     model = get_model(network=network, pooling=pooling)
     image_features = []
     image_file_type = ".png"
@@ -170,9 +186,7 @@ def get_features(
 
     # forms a pandas dataframe from the range of image id's (1-5000),
     # and the image_features list of numpy char arrays of each images features as formed above:
-    features_df = pd.DataFrame(
-        {"id": img_df['file_name'], "features": image_features}
-    )
+    features_df = pd.DataFrame({"id": img_df["file_name"], "features": image_features})
     # if the df_to_pickle parameter is set to true, the features_df dataframe will be saved to a csv file
     # in the provided pickle_save_dir, named for example: 'image_features_ResNet50_max.csv':
     if df_to_pickle:
@@ -187,39 +201,50 @@ def get_features(
     return features_df
 
 
-"""pca_tsne_pipeline returns a pipeline of principal component analysis (PCA) and then 
-t-distributed stochastic neighbor embedding (T-sne) sci-kit learn functions. 
-PCA is a dimensionality-reduction technique, which is used to obtain the principal compenents
-from the data. The principal compenents retain most of the variation and patterns
-found in the original data, but are much less complex. PCA is used because the sklearn documentation
-for T-sne highly recommends another dimensionality reduction method prior to input to T-sne.
-
-T-sne is another dimensionality reduction technique which maps high-dimensional data to a 2-d or 3-d
-plane (in this case 2-d). K-means clustering can then be used on the mapping obtained and the similarity 
-of all the images can be visualized. """
-
-
 def pca_tsne_pipeline():
+    
+    """
+    pca_tsne_pipeline returns a pipeline of principal component analysis (PCA) and then 
+    t-distributed stochastic neighbor embedding (T-sne) sci-kit learn functions. 
+    PCA is a dimensionality-reduction technique, which is used to obtain the principal compenents
+    from the data. The principal compenents retain most of the variation and patterns
+    found in the original data, but are much less complex. PCA is used because the sklearn documentation
+    for T-sne highly recommends another dimensionality reduction method prior to input to T-sne. 
+
+    T-sne is another dimensionality reduction technique which maps high-dimensional data to a 2-d or 3-d
+    plane (in this case 2-d). K-means clustering can then be used on the mapping obtained and the similarity 
+    of all the images can be visualized. 
+
+    Parameters:
+    None
+
+    Returns:
+    pipe: sklearn pipeline of PCA then T-sne.
+    """
+
     # sklearn PCA functions, n_components sets the number of components to keep, I used the
     # recommended n_components=30 for T-sne
     pca = decomposition.PCA(n_components=30)
     # sklearn TSNE function, all parameters kept at default values:
     tsne = manifold.TSNE(random_state=0, perplexity=30, early_exaggeration=12.0)
     # returns a pipeline model consisting first of PCA, then of T-sne:
-    return pipeline.Pipeline([("PCA", pca), ("T-sne", tsne)])
-
-
-"""map_features_to_2d_plane applied the pca_tsne_pipeline function above on
-features_df, the dataframe of all the image features.
-
-parameters:
-'features_df': the dataframe of features returned by the get_features function
-returns:
-'results_df': a dataframe of the x-y mappings of each of the image's features.
-"""
+    pipe = pipeline.Pipeline([("PCA", pca), ("T-sne", tsne)])
+    return pipe
 
 
 def map_features_to_2d_plane(features_df):
+
+    """
+    map_features_to_2d_plane applied the pca_tsne_pipeline function above on
+    features_df, the dataframe of all the image features.
+
+    parameters:
+    'features_df': the dataframe of image features returned by the get_features function
+
+    Returns:
+    'results_df': a dataframe of the x-y mappings of each of the image's features.
+    """
+
     logging.info("Mapping features to x, y plane...")
     model = pca_tsne_pipeline()
 
@@ -232,34 +257,39 @@ def map_features_to_2d_plane(features_df):
     # fit_data is the x-y mappings of each of the feature vectors
     fit_data = model.fit_transform(feature_list)
 
+    # Build results list from image id, x, and y values:
     results = []
     for i in range(0, len(features_df)):
         results.append(
             {"id": features_df["id"][i], "x": fit_data[i][0], "y": fit_data[i][1]}
         )
-
-    results_df = pd.DataFrame(results)
+    # Build results_df dataframe from results list:
     # results_df has columns 'id', 'x', and 'y'.
+    results_df = pd.DataFrame(results)
     return results_df
-
-
-"""plot_kmeans_elbow_method plots the elbow method to find the optimal number of
-clusters for k-means clustering. Displays and saves a plot of the k-means inertia 
-compared with the number of clusters.
-
-After running this on the data, it is clear from the elbow method that
-the optimal number of clusters is n=5.
-
-parameters:
-'results_df': the dataframe returned by map_features_to_2d_plane
-'max_clusters': the max range of clusters to test for (e.g. n=1 to n=15)
-'plt_save_dir': directory where to save the generated elbow method plot
-"""
 
 
 def plot_kmeans_elbow_method(
     results_df, max_clusters=10, plt_save_dir="./generated_plots/"
 ):
+
+    """
+    plot_kmeans_elbow_method plots the elbow method to find the optimal number of
+    clusters for k-means clustering. Displays and saves a plot of the k-means inertia 
+    compared with the number of clusters.
+
+    After running this on the data, it is clear from the elbow method that
+    the optimal number of clusters is n=5.
+
+    Parameters:
+    'results_df': the dataframe returned by map_features_to_2d_plane
+    'max_clusters': the max range of clusters to test for (e.g. n=1 to n=15)
+    'plt_save_dir': directory where to save the generated elbow method plot
+
+    Returns:
+    None
+    """
+    
     logging.info("Plotting elbow method for k means clustering...")
     sum_of_squared_distances = []
     # drop 'id' column for k-means:
@@ -286,20 +316,24 @@ def plot_kmeans_elbow_method(
     plt.show()
 
 
-"""cluster_images performs k-means clustering on the results_df dataframe of x-y mappings
-of each images feature vectors. returns a list of the cluster labels of all the images.
-
-parameters:
-'results_df': the dataframe returned by the map_features_to_2d_plane function
-'n_clusters': the number of clusters to perform k-means clustering with, n=5 was found to
-              be optimal from the elbow-method.
-'input_n_clusters': boolean, if set to True will prompt the user for input for the value of n_clusters,
-                    to be used if you do not know the optimal value from the elbow method already.
-if 'input_n_clusters' is True, then the n_clusters parameter will be ignored.
- """
-
-
 def cluster_images(results_df, n_clusters=5, input_n_clusters=False):
+
+    """
+    cluster_images performs k-means clustering on the results_df dataframe of x-y mappings
+    of each images feature vectors. returns a list of the cluster labels of all the images.
+
+    Parameters:
+    'results_df': the dataframe returned by the map_features_to_2d_plane function
+    'n_clusters': the number of clusters to perform k-means clustering with, n=5 was found to
+                be optimal from the elbow-method.
+    'input_n_clusters': boolean, if set to True will prompt the user for input for the value of n_clusters,
+                        to be used if you do not know the optimal value from the elbow method already.
+    if 'input_n_clusters' is True, then the n_clusters parameter will be ignored.
+
+    Returns:
+    image_clusters: the cluster labels for each image as an array (e.g. 1 to 5)
+    """
+
     if input_n_clusters:
         # as the elbow method is mostly visual, it can be useful to prompt the user to input the number of optimal clusters observed
         n_clusters = input("Enter value for n_clusters (from k-means elbow method): ")
@@ -318,53 +352,51 @@ def cluster_images(results_df, n_clusters=5, input_n_clusters=False):
     return image_clusters
 
 
-"""plot_clusters plots the cluster labels obtained from cluster_images.
-each image point is colored according to its cluster label.
-
-parameters:
-'results_df': the dataframe returned by the map_features_to_2d_plane function
-'image_clusters': the list of image_clusters returned by cluster_images
-'plt_save_dir': directory where to save the plot of image clusters.
-
-"""
-
-
 def plot_clusters(results_df, image_clusters, plt_save_dir="./generated_plots/"):
+
+    """
+    plot_clusters plots the cluster labels obtained from cluster_images.
+    each image point is colored according to its cluster label.
+
+    Parameters:
+    'results_df': the dataframe returned by the map_features_to_2d_plane function
+    'image_clusters': the list of image_clusters returned by cluster_images
+    'plt_save_dir': directory where to save the plot of image clusters.
+
+    Returns:
+    None
+    """
+
     logging.info("Plotting clusters...")
+    # set plot image size:
     plt.rcParams["figure.figsize"] = [5, 5]
     fig, ax = plt.subplots()
     x = results_df["x"]
     y = results_df["y"]
+    # scatter plot of x and y values for each image, colored according to their cluster number:
     sc = plt.scatter(x, y, c=image_clusters, alpha=1)
+    # get the color set of the scatter plot (used to obtain handles):
     clset = set(zip(image_clusters, image_clusters))
+    # get color assigned to each cluster for the legend:
     handles = [
         plt.plot([], color=sc.get_cmap()(sc.norm(c)), ls="", marker="o")[0]
         for c, l in clset
     ]
+    # get labels for each color in the colorset:
     labels = [l for c, l in clset]
+    # label the colors with the cluster number they represent in the plot legend:
     plt.legend(handles, labels)
     plt.title("K-means clustering of image features with k=5")
 
     ax.grid(True)
-    # for i, txt in enumerate(results_df['id'].values):
-    #    ax.annotate(txt, (x[i], y[i]), rotation=45)
+    # set plot save path:
     plt_save_path = plt_save_dir + "cluster_plot.png"
+    # make directory where plot is to be saved if it doesn't exist:
     if os.path.isdir(plt_save_dir) == False:
         os.mkdir(plt_save_dir)
+    # save and show plot:
     plt.savefig(plt_save_path)
     plt.show()
-
-
-"""get_attributes_clusters_df combines the attribute_list csv with the image_clusters list
-
-parameters: 
-'image_clusters': the list of image_clusters returned by cluster_images
-'attribute_list_path': the path to the attribute_list.csv file
-'csv_save_dir': directory where to store the newly combined dataframe as a csv
-'save_to_csv': boolean, if True will save the combined dataframe to the 'csv_save_dir' provided.
-returns:
-attribute_list_df: dataframe of the attribute_list.csv combined with the image_clusters list
-"""
 
 
 def get_attributes_clusters_df(
@@ -373,9 +405,24 @@ def get_attributes_clusters_df(
     csv_save_dir="./generated_csv/",
     save_to_csv=True,
 ):
+
+    """
+    get_attributes_clusters_df combines the attribute_list csv with the image_clusters list
+
+    Parameters: 
+    'image_clusters': the list of image_clusters returned by cluster_images
+    'attribute_list_path': the path to the attribute_list.csv file
+    'csv_save_dir': directory where to store the newly combined dataframe as a csv
+    'save_to_csv': boolean, if True will save the combined dataframe to the 'csv_save_dir' provided.
+
+    Returns:
+    attribute_list_df: dataframe of the attribute_list.csv combined with the image_clusters list
+    """
+
     logging.info("Getting attributes dataframe with clusters")
     attribute_list_df = pd.read_csv(attribute_list_path)
     attribute_list_df["cluster"] = image_clusters
+    # if save_to_csv set to True, saves a csv file of the image attributes and their clusters:
     if save_to_csv:
         csv_save_path = csv_save_dir + "attribute_list_w_clusters.csv"
         if os.path.isdir(csv_save_dir) == False:
@@ -383,23 +430,6 @@ def get_attributes_clusters_df(
         attribute_list_df.to_csv(csv_save_path, index=False)
 
     return attribute_list_df
-
-
-"""build_filtered_dataframe filters the nature images based on the clusters obtained above and
-returns a dataframe consisting only of the non-filtered images (the faces).
-
-parameters:
-'attribute_list_df': the dataframe returned by get_attributes_clusters_df
-'image_num_to_filter': the id of one of the nature images, will be used to find which cluster to filter
-'move_filtered': boolean, if True will move all the nature images to the 'removed_images_path'
-'save_to_csv': boolean, if True will save the filtered_dataframe to csv in the 'csv_save_dir'
-'csv_save_dir': directory where to save the filtered_dataframe
-'images_path': directory where all the images are stored
-'removed_images_path': directory where to move all the filtered nature images
-
-returns:
-filtered_df: a dataframe consisting only of facial images, with the nature images filtered out
-"""
 
 
 def build_filtered_dataframe(
@@ -411,6 +441,24 @@ def build_filtered_dataframe(
     images_path="./images/",
     removed_images_path="./images/removed/",
 ):
+
+    """
+    build_filtered_dataframe filters the nature images based on the clusters obtained above and
+    returns a dataframe consisting only of the non-filtered images (the faces).
+
+    Parameters:
+    'attribute_list_df': the dataframe returned by get_attributes_clusters_df
+    'image_num_to_filter': the id of one of the nature images, will be used to find which cluster to filter
+    'move_filtered': boolean, if True will move all the nature images to the 'removed_images_path'
+    'save_to_csv': boolean, if True will save the filtered_dataframe to csv in the 'csv_save_dir'
+    'csv_save_dir': directory where to save the filtered_dataframe
+    'images_path': directory where all the images are stored
+    'removed_images_path': directory where to move all the filtered nature images
+
+    Returns:
+    filtered_df: a dataframe consisting only of facial images, with the nature images filtered out
+    """
+
     logging.info("Building filtered dataframe...")
     # gets the cluster the supplied image is in, that is the cluster number
     # that will get filtered
@@ -435,6 +483,8 @@ def build_filtered_dataframe(
     # cluster column no longer needed
     filtered_df = filtered_df.drop("cluster", 1)
 
+    # save filtered_df to csv named 'attribute_list_filtered.csv' in the provided csv_save_dir
+    # e.g. generated_csv/attribute_list_filtered.csv
     if save_to_csv:
         csv_save_path = csv_save_dir + "attribute_list_filtered.csv"
         if os.path.isdir(csv_save_dir) == False:
@@ -443,15 +493,23 @@ def build_filtered_dataframe(
     return filtered_df
 
 
-"""run_image_filtering_from_scratch will run all the functions above in order.
-It is a standalone function and it is all you need to run in order to get the filtered dataset
-and move all the nature images to their own directory.
-
-After I ran this I checked which images were filtered and all the nature images were correctly filtered,
-with no false positives either."""
-
-
 def run_image_filtering_from_scratch():
+
+    """
+    run_image_filtering_from_scratch will run all the functions above in order.
+    It is a standalone function and it is all you need to run in order to get the filtered dataset
+    and move all the nature images to their own directory.
+
+    After I ran this I checked which images were filtered and all the nature images were correctly filtered,
+    with no false positives either.
+
+    Parameters:
+    None
+
+    Returns:
+    None
+    """
+
     reset_image_subdirs()
     img_df = pd.read_csv("attribute_list.csv")
     # get dataframe of image features as char arrays:
@@ -489,15 +547,22 @@ def run_image_filtering_from_scratch():
     print(filtered_df.head())
 
 
-"""run_image_filtering_from_csv is a utility function to skip the feature extraction and clustering process,
-it skips straight to separating the nature images using the 'attribute_list_w_clusters.csv' generated after running
-the run_image_filtering_from_scratch function. It is useful if the removed images were reset accidently.
-
-Note: can only be ran after the run_image_filtering_from_scratch has been ran at least once.
-"""
-
-
 def run_image_filtering_from_csv():
+
+    """
+    run_image_filtering_from_csv is a utility function to skip the feature extraction and clustering process,
+    it skips straight to separating the nature images using the 'attribute_list_w_clusters.csv' generated after running
+    the run_image_filtering_from_scratch function. It is useful if the removed images were reset accidently.
+
+    Note: can only be ran after the run_image_filtering_from_scratch has been ran at least once.
+
+    Parameters:
+    None
+
+    Returns:
+    None
+    """
+
     attribute_list_df = pd.read_csv("./generated_csv/attribute_list_w_clusters.csv")
     # image number 4 is a scenery image, all similar images (those with the same cluster label) will be filtered
     filtered_df = build_filtered_dataframe(

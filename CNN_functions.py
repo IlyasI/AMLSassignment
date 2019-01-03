@@ -7,33 +7,30 @@ import pandas as pd
 from keras import backend as K
 from keras.layers import Conv2D, Dense, Dropout, Flatten, MaxPooling2D
 from keras.models import Sequential
-from keras.preprocessing.image import (
-    ImageDataGenerator,
-    load_img,
-)
+from keras.preprocessing.image import ImageDataGenerator
 
 logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.INFO)
 
-"""
-split_dataset_random splits the dataset into training, validation, and test sets randomly.
-The train:validation:test split I used is 60:20:20.
-
-train length: 2739 | ratio: 0.6
-validate length: 913 | ratio: 0.2
-test length: 913 | ratio: 0.2
-
-parameters: 
-'df': dataframe of the dataset you want to split, I used this on the filtered dataframe obtained from ImageFiltering.py
-'validation_split': the ratio that you want your validation set to be
-'test_split': the ratio that you want your test set to be
-'seed': seed to use for the random split, by keeping this the same each run we obtain a consistent output despite the 'randomness'
-
-returns: 
-'train, validate, test': dataframes of the corresponding splits of the data
-"""
-
-
 def split_dataset_random(df, validation_split=0.2, test_split=0.2, seed=123):
+
+    """
+    split_dataset_random splits the dataset into training, validation, and test sets randomly.
+    The train:validation:test split I used is 60:20:20.
+
+    train length: 2739 | ratio: 0.6
+    validate length: 913 | ratio: 0.2
+    test length: 913 | ratio: 0.2
+
+    Parameters: 
+    'df': dataframe of the dataset you want to split, I used this on the filtered dataframe obtained from ImageFiltering.py
+    'validation_split': the ratio that you want your validation set to be
+    'test_split': the ratio that you want your test set to be
+    'seed': seed to use for the random split, by keeping this the same each run we obtain a consistent output despite the 'randomness'
+
+    Returns: 
+    'train, validate, test': dataframes of the corresponding splits of the data
+    """
+
     # sets the seed for the randomized split:
     np.random.seed(
         seed
@@ -70,53 +67,29 @@ def split_dataset_random(df, validation_split=0.2, test_split=0.2, seed=123):
     return train, validate, test
 
 
-"""reset_symlinks is a utility function used to reset the symbolic links created by symlink_classes_images
-"""
-
-
 def reset_symlinks():
+    """reset_symlinks is a utility function used to reset the symbolic links created by symlink_classes_images
+
+    Parameters:
+    None
+
+    Returns:
+    None
+    """
+
+    #base directory where images are located (and the symlink directories):
     dest_dir = "./images/"
+
+    #walk directory structure in ./images/, obtaining all directories and filenames contained:
     walker = os.walk(dest_dir)
     rem_dirs = walker.__next__()[1]
 
+    #iterate through all subdirectories under ./images/:
     for dirpath, dirnames, filenames in walker:
         print(dirpath)
+        #remove each subdirectory if it is not the 'removed' directory:
         if dirpath != "./images/removed":
             shutil.rmtree(dirpath)
-
-
-"""symlink_classes_images creates symbolic links for use with keras's 
-flow_from_directory utility function. Symbolic links save disk space compared
-with copying each image
-
-The directory structure created looks like:
--images
-----train
--------human
-----------0
-----------1
--------smiling
-----------0
-----------1
-----validate
--------human
--------smiling
-----test
-
-where each class has its own subdirectory under the train, validate, test directories, 
-where the image symlinks are created based on the class value of the image (e.g. 0 or 1)
-
-parameters:
-train: the train dataframe
-validate: validation dataframe,
-test: test dataframe,
-rowName: the row name for which to create symbolic links (e.g. 'human' or 'hair_color')
-imagesPath: path to the directory where the images are stored
-trainPath: path to where you want the train symlinks to be stored
-validatePath: path to where you want the validation symlinks to be stored
-testPath: path to where you want the test symlinks to be stored
-reset_symlinks: boolean, if True will reset any symlinks made on previous runs
-"""
 
 
 def symlink_classes_images(
@@ -130,6 +103,43 @@ def symlink_classes_images(
     testPath=os.path.abspath("./images/test/"),
     reset_symlinks=False,
 ):
+    """
+    symlink_classes_images creates symbolic links for use with Keras's 
+    flow_from_directory utility function. Symbolic links save disk space compared
+    with copying each image
+
+    The directory structure created looks like:
+    -images
+    ----train
+    -------human
+    ----------0
+    ----------1
+    -------smiling
+    ----------0
+    ----------1
+    ----validate
+    -------human
+    -------smiling
+    ----test
+
+    where each class has its own subdirectory under the train, validate, test directories, 
+    where the image symlinks are created based on the class value of the image (e.g. 0 or 1)
+
+    Parameters:
+    train: the train dataframe
+    validate: validation dataframe,
+    test: test dataframe,
+    rowName: the row name for which to create symbolic links (e.g. 'human' or 'hair_color')
+    imagesPath: path to the directory where the images are stored
+    trainPath: path to where you want the train symlinks to be stored
+    validatePath: path to where you want the validation symlinks to be stored
+    testPath: path to where you want the test symlinks to be stored
+    reset_symlinks: boolean, if True will reset any symlinks made on previous runs
+
+    Returns:
+    None
+    """
+    
     if reset_symlinks:
         reset_symlinks()
     newPaths = [trainPath, validatePath, testPath]
@@ -183,74 +193,6 @@ def symlink_classes_images(
                 logging.error("File missing: " + fileName)
 
 
-"""get_cnn_model returns an untrained CNN network model consisting of multiple 2d convolution layers, 2d max-pooling layers and dropout layers. 
-With a fully-connected dense layer near the output
-If the current classification task is binary, the final output layer will be a sigmoid function and binary_crossentropy will be used as the loss
-function.
-if it is categorical, then the final output layer will be softmax and categorical_crossentropy will be used as the loss function.
-
-The general structure of a convolutional neural network on which this network is based is 
-described in more detail here: https://www.nature.com/articles/nature14539
-
-This specific structure is based on the tutorial found here: 
-https://www.learnopencv.com/image-classification-using-convolutional-neural-networks-in-keras/
-which in turn is a less deep form of the ConvNet-A architecture defined in this paper:
-https://arxiv.org/pdf/1409.1556.pdf 
-which is also given as an example here: http://cs231n.github.io/convolutional-networks/
-
-Binary Classification Network Architecture:
-_________________________________________________________________
-Layer (type)                 Output Shape              Param #
-=================================================================
-conv2d_1 (Conv2D)            (None, 32, 128, 128)      896
-_________________________________________________________________
-conv2d_2 (Conv2D)            (None, 32, 126, 126)      9248
-_________________________________________________________________
-max_pooling2d_1 (MaxPooling2 (None, 32, 63, 63)        0
-_________________________________________________________________
-dropout_1 (Dropout)          (None, 32, 63, 63)        0
-_________________________________________________________________
-conv2d_3 (Conv2D)            (None, 32, 63, 63)        9248
-_________________________________________________________________
-conv2d_4 (Conv2D)            (None, 32, 61, 61)        9248
-_________________________________________________________________
-max_pooling2d_2 (MaxPooling2 (None, 32, 30, 30)        0
-_________________________________________________________________
-dropout_2 (Dropout)          (None, 32, 30, 30)        0
-_________________________________________________________________
-conv2d_5 (Conv2D)            (None, 64, 30, 30)        18496
-_________________________________________________________________
-conv2d_6 (Conv2D)            (None, 64, 28, 28)        36928
-_________________________________________________________________
-max_pooling2d_3 (MaxPooling2 (None, 64, 14, 14)        0
-_________________________________________________________________
-dropout_3 (Dropout)          (None, 64, 14, 14)        0
-_________________________________________________________________
-flatten_1 (Flatten)          (None, 12544)             0
-_________________________________________________________________
-dense_1 (Dense)              (None, 512)               6423040
-_________________________________________________________________
-dropout_4 (Dropout)          (None, 512)               0
-_________________________________________________________________
-dense_2 (Dense)              (None, 1)                 513
-=================================================================
-Total params: 6,507,617
-Trainable params: 6,507,617
-Non-trainable params: 0
-_________________________________________________________________
-
-parameters:
-'optimizer': 'adam' or 'rmsprop', which optimization algorithm to use to train the network
-              both Adam and RMSProp have good performance.
-'class_mode': 'binary' or 'categorical', use 'binary' for binary classification problems
-              and 'categorical' for multi-class classification problems.
-'categorical_n_classes': integer which defines the number of classes if 'class_mode' is set to 'categorical'
-'input_shape': input shape of the image RGB values
-'channels_first': boolean, if True will use Theano ordering of input shape, where the number of channels 
-                  comes first, e.g. (3, 128, 128). If false will use Tensorflow ordering e.g. (128, 128, 3)
-"""
-
-
 def get_cnn_model(
     optimizer="adam",
     class_mode="binary",
@@ -258,6 +200,78 @@ def get_cnn_model(
     input_shape=(3, 128, 128),
     channels_first=True,
 ):
+
+    """
+    get_cnn_model returns an untrained CNN network model consisting of multiple 2d convolution layers, 2d max-pooling layers and dropout layers. 
+    With a fully-connected dense layer near the output
+    If the current classification task is binary, the final output layer will be a sigmoid function and binary_crossentropy will be used as the loss
+    function.
+    if it is categorical, then the final output layer will be softmax and categorical_crossentropy will be used as the loss function.
+
+    The general structure of a convolutional neural network on which this network is based is 
+    described in more detail here: https://www.nature.com/articles/nature14539
+
+    This specific structure is based on the tutorial found here: 
+    https://www.learnopencv.com/image-classification-using-convolutional-neural-networks-in-keras/
+    which in turn is a less deep form of the ConvNet-A architecture defined in this paper:
+    https://arxiv.org/pdf/1409.1556.pdf 
+    which is also given as an example here: http://cs231n.github.io/convolutional-networks/
+
+    Binary Classification Network Architecture:
+    _________________________________________________________________
+    Layer (type)                 Output Shape              Param #
+    =================================================================
+    conv2d_1 (Conv2D)            (None, 32, 128, 128)      896
+    _________________________________________________________________
+    conv2d_2 (Conv2D)            (None, 32, 126, 126)      9248
+    _________________________________________________________________
+    max_pooling2d_1 (MaxPooling2 (None, 32, 63, 63)        0
+    _________________________________________________________________
+    dropout_1 (Dropout)          (None, 32, 63, 63)        0
+    _________________________________________________________________
+    conv2d_3 (Conv2D)            (None, 32, 63, 63)        9248
+    _________________________________________________________________
+    conv2d_4 (Conv2D)            (None, 32, 61, 61)        9248
+    _________________________________________________________________
+    max_pooling2d_2 (MaxPooling2 (None, 32, 30, 30)        0
+    _________________________________________________________________
+    dropout_2 (Dropout)          (None, 32, 30, 30)        0
+    _________________________________________________________________
+    conv2d_5 (Conv2D)            (None, 64, 30, 30)        18496
+    _________________________________________________________________
+    conv2d_6 (Conv2D)            (None, 64, 28, 28)        36928
+    _________________________________________________________________
+    max_pooling2d_3 (MaxPooling2 (None, 64, 14, 14)        0
+    _________________________________________________________________
+    dropout_3 (Dropout)          (None, 64, 14, 14)        0
+    _________________________________________________________________
+    flatten_1 (Flatten)          (None, 12544)             0
+    _________________________________________________________________
+    dense_1 (Dense)              (None, 512)               6423040
+    _________________________________________________________________
+    dropout_4 (Dropout)          (None, 512)               0
+    _________________________________________________________________
+    dense_2 (Dense)              (None, 1)                 513
+    =================================================================
+    Total params: 6,507,617
+    Trainable params: 6,507,617
+    Non-trainable params: 0
+    _________________________________________________________________
+
+    Parameters:
+    'optimizer': 'adam' or 'rmsprop', which optimization algorithm to use to train the network
+                both Adam and RMSProp have good performance.
+    'class_mode': 'binary' or 'categorical', use 'binary' for binary classification problems
+                and 'categorical' for multi-class classification problems.
+    'categorical_n_classes': integer which defines the number of classes if 'class_mode' is set to 'categorical'
+    'input_shape': input shape of the image RGB values
+    'channels_first': boolean, if True will use Theano ordering of input shape, where the number of channels 
+                    comes first, e.g. (3, 128, 128). If false will use Tensorflow ordering e.g. (128, 128, 3)
+
+    Returns:
+    model: untrained Keras model with custom defined CNN architecture.
+    """
+
     if channels_first:
         # use this if channels are first in input shape e.g. (3,128,128)
         # theano input shape ordering
@@ -383,15 +397,6 @@ def get_cnn_model(
     return model
 
 
-"""get_ImageDataGenerator returns a Keras image data generator. This can be used to
-generate batches of tensor image data. 
-Additionally, it can be used to generate augmented images from the original images to increase the training set size.
-I did not end up using augmented images for training as it turned out my model was already
-very accurate, but this can be useful for more difficult problems.
-
-All parameters are set to 0 or False in order to keep the original images without augmenting them."""
-
-
 def get_ImageDataGenerator(
     shear_range=0,
     zoom_range=0,
@@ -399,8 +404,33 @@ def get_ImageDataGenerator(
     rotation_range=0,
     zca_whitening=False,
 ):
+
+    """
+    get_ImageDataGenerator returns a Keras image data generator. This can be used to
+    generate batches of tensor image data. 
+    Additionally, it can be used to generate augmented images from the original images to increase the training set size.
+    I did not end up using augmented images for training as it turned out my model was already
+    very accurate, but this can be useful for more difficult problems.
+
+    All parameters are set to 0 or False in order to keep the original images without augmenting them.
+    RGB values are scaled to be between 0 and 1, rather than 0 and 127.
+
+    Parameters:
+    shear_range: shear intensity value.
+    zoom_range: range for random zoom.
+    horizontal_flip: boolean, whether to randomly flip image horizontally.
+    rotation_range: degree range for random rotation.
+    zca_whitening: Boolean, whether to apply zca whitening.
+
+    Returns:
+    datagen: Keras ImageDataGenerator object, generates batches of image data with augmentations specified.
+    """
+
+    #gets ImageDataGenerator with specified parameters,
+    #rescale=1.0/127, reduces all RGB values to be a float between 0 and 1 rather than 0 and 127
+    #data_format='channels_first' specifies that the data output shape is (3,128,128), rather than (128,128,3)
     datagen = ImageDataGenerator(
-        rescale=1.0 / 255,
+        rescale=1.0 / 127,
         shear_range=shear_range,
         zoom_range=zoom_range,
         zca_whitening=zca_whitening,
@@ -412,24 +442,6 @@ def get_ImageDataGenerator(
     return datagen
 
 
-"""get_flow_from_directory returns a flow of images from the provided image directory.
-A flow consists of batches of image data.
-This flow is then used as the input to train and test the Keras CNN model.
-
-parameters:
-'ImageDataGenerator': the image data generator returned by get_ImageDataGenerator
-'img_dir': directory where your images are stored
-'target_size': the dimensions to which all images will be rescaled, set to (128, 128) as that
-               is the size expected as input to the CNN model.
-'class_mode': 'binary' or 'categorical', determines the type of label arrays returned
-              'binary' returned 1D binary labels, 'categorical' returns 2D one-hot encoded labels
-              use binary if it is a binary classification problem and categorical if it is multi-class.
-'batch_size': size of the batches of data generated, 32 is the expected size for our CNN model
-'shuffle': boolean, if True the generated data will be shuffled
-'seed': seed to use if randomly shuffling
-"""
-
-
 def get_flow_from_directory(
     ImageDataGenerator,
     img_dir,
@@ -439,6 +451,30 @@ def get_flow_from_directory(
     shuffle=True,
     seed=123,
 ):
+
+    """
+    get_flow_from_directory returns a flow of images from the provided image directory.
+    A flow consists of batches of image data.
+    This flow is then used as the input to train and test the Keras CNN model.
+
+    Parameters:
+    'ImageDataGenerator': the ImageDataGenerator object returned by get_ImageDataGenerator
+    'img_dir': directory where your images are stored
+    'target_size': the dimensions to which all images will be rescaled, set to (128, 128) as that
+                is the size expected as input to the CNN model.
+    'class_mode': 'binary' or 'categorical', determines the type of label arrays returned
+                'binary' returned 1D binary labels, 'categorical' returns 2D one-hot encoded labels
+                use binary if it is a binary classification problem and categorical if it is multi-class.
+    'batch_size': size of the batches of data generated, 32 is the expected size for our CNN model
+    'shuffle': boolean, if True the generated data will be shuffled
+    'seed': seed to use if randomly shuffling
+
+    Returns:
+    flow: Keras flow of batches of image data
+    """
+
+    #get flow of image batches from all images contained in the provided image directory 
+    #it can be directory of symbolic links
     flow = ImageDataGenerator.flow_from_directory(
         directory=img_dir,
         target_size=target_size,
