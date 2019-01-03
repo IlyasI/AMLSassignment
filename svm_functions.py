@@ -194,7 +194,7 @@ def transfer_learning_svm(row_name, load_features=False):
     generate_test_predictions_csv(output_df, accuracy, row_name, path_append="resnet50")
 
 
-run_svm_classifier("human", "./svm_saved_models/", load_model=True)
+run_svm_classifier("eyeglasses", "./svm_saved_models/", load_model=False)
 # transfer_learning_svm("hair_color", load_features=True)
 
 # print("Classification report for classifier %s:\n%s\n"
