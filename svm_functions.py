@@ -1,5 +1,4 @@
 import csv
-import glob
 import os
 import pickle
 import sys
@@ -10,23 +9,23 @@ from PIL import Image
 from scipy.stats import expon
 from sklearn import metrics, svm
 from sklearn.decomposition import PCA
-from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
+from sklearn.model_selection import RandomizedSearchCV
 
-import CNN_functions
+from CNN_functions import split_dataset_random
 from classifiers import get_metrics
-from ImageFiltering import get_features, get_model
+from ImageFiltering import get_features
 
 
 def prepare_for_svm(seed=0):
     filteredDf = pd.read_csv("./generated_csv/attribute_list_filtered.csv")
-    train, validate, test = CNN_functions.split_dataset_random(df=filteredDf, seed=seed)
+    train, validate, test = split_dataset_random(df=filteredDf, seed=seed)
     return train, validate, test
 
 
 def create_image_dataset(dataframe, images_path="./images/"):
     img_arrays = {}
     for i, image in enumerate(dataframe["file_name"]):
-        # print(i)
+
         img_path = images_path + str(image) + ".png"
         img = Image.open(img_path).convert("RGB").resize((128, 128))
         img_array = np.array(img).reshape(128, -1)
@@ -46,16 +45,13 @@ def get_X_Y_from_dataset(image_dataset, row_name, labels_dataframe):
     Y = []  # labels
     for key, value in image_dataset.items():
         value_PCA = pca.fit_transform(value)
-        # print(value.shape)
-        # print(value_PCA.shape)
+
         X.append(value_PCA)
         label = df.loc[df["file_name"] == key, row_name].item()
         if label == -1:
             label = 0
         Y.append(label)
-        # print(key, label)
-    # print('X_SHAPE:', X.shape)
-    # print('Y_SHAPE', Y.shape)
+
     X = np.array(X)
     Y = np.array(Y)
     return X, Y
@@ -67,7 +63,7 @@ def run_svm_classifier(
     model_path = model_save_load_path + row_name + "_svm_trained.sav"
 
     train, validate, test = prepare_for_svm(seed=0)
-    # print(train)
+
     image_dataset_train = create_image_dataset(train, images_path=images_path)
     image_dataset_test = create_image_dataset(test, images_path=images_path)
     X_train, Y_train = get_X_Y_from_dataset(image_dataset_train, row_name, train)
@@ -78,8 +74,7 @@ def run_svm_classifier(
     X_test_flat = X_test.reshape((n_test, nx_test * ny_test))
 
     if load_model == False:
-        # X_train_PCA_flat = pca.fit_transform(X_train.reshape((N_train, -1)))
-        # X_test_PCA_flat = pca.fit_transform(X_test.reshape((N_test, -1)))
+
         classifier = get_svm_classifier(randomized_search=True)
 
         print("Fitting classifier...")
@@ -93,11 +88,12 @@ def run_svm_classifier(
     else:
         classifier = pickle.load(open(model_path, "rb"))
 
-    y_pred = classifier.predict(X_test_flat)[0]
+    y_pred = classifier.predict(X_test_flat)
+    y_true = Y_test.values
     filenames = test["file_name"]
 
     output_df, output_df_wrong, report, accuracy, confusion = get_metrics(
-        Y_test, y_pred, filenames
+        y_true, y_pred, filenames
     )
     generate_test_predictions_csv(output_df, accuracy, row_name, path_append="svm")
 
@@ -106,8 +102,6 @@ def get_svm_classifier(randomized_search=True):
     svc = svm.SVC(gamma="scale", kernel="linear", verbose=True, class_weight="balanced")
     if randomized_search:
         parameters = {"C": expon(scale=100)}
-        # parameters_random = {"C": [1, 10, 100]}
-        # classifier = GridSearchCV(svc, parameters)
         classifier = RandomizedSearchCV(
             svc, parameters, n_iter=10, verbose=1, n_jobs=-1
         )
@@ -170,7 +164,7 @@ def transfer_learning_svm(row_name, load_features=False):
     )
     print(filtered_feature_df.head())
 
-    train, validate, test = CNN_functions.split_dataset_random(
+    train, validate, test = split_dataset_random(
         df=filtered_feature_df, validation_split=0, test_split=0.2, seed=0
     )
     print("YTRAIN SHAPE: " + str(train["features"].shape))
@@ -200,7 +194,7 @@ def transfer_learning_svm(row_name, load_features=False):
     generate_test_predictions_csv(output_df, accuracy, row_name, path_append="resnet50")
 
 
-run_svm_classifier("human", "./svm_saved_models/", load_model=False)
+run_svm_classifier("human", "./svm_saved_models/", load_model=True)
 # transfer_learning_svm("hair_color", load_features=True)
 
 # print("Classification report for classifier %s:\n%s\n"
