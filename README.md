@@ -3,7 +3,7 @@ Applied Machine Learning Systems ELEC0132 (18/19) Assignment
 
 ---
 ## Image Filtering:
----
+
 To run the image filtering code, 
 run the following (without the quotes) in the command line:
 'python Run_Image_Filtering.py <load_feature_csv>'
@@ -18,7 +18,7 @@ Example uses:
 
 ---
 ## Custom CNN Architecture Classification:
----
+
 To run the custom architecture CNN classifier code, run the following (without the quotes) in the command line:
 'python Run_CNN_Classifier.py <row_name> <create_symlinks> <load_trained_model>'
 
@@ -35,7 +35,6 @@ Example uses:
 
 ---
 ## ResNet50 Feature Extraction To Linear SVM Transfer Learning Classification:
----
 
 To run the ResNet50 feature extraction to SVM classifier transfer learning code, 
 run the following (without the quotes) in the command line:
@@ -52,7 +51,6 @@ Example uses:
 
 ---
 ## Linear SVM Classification:
----
 
 To run the linear SVM classifier (on raw RGB pixel values) code, 
 run the following (without the quotes) in the command line:
