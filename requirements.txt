@@ -6,8 +6,7 @@
 # ImageFiltering.py: 8,9,10
 Keras == 2.2.4
 
-# old_files/data_processing.py: 4
-# svm_functions.py: 8
+# SVM_classifiers.py: 8
 Pillow == 5.3.0
 
 # CNN_classifiers.py: 6
@@ -17,25 +16,19 @@ matplotlib == 3.0.2
 # CNN_classifiers.py: 7
 # CNN_functions.py: 5
 # ImageFiltering.py: 6
-# old_files/data_processing.py: 3
-# svm_functions.py: 6
+# SVM_classifiers.py: 6
 numpy == 1.15.4
 
 # CNN_classifiers.py: 8
 # CNN_functions.py: 6
 # ImageFiltering.py: 7
-# old_files/data_processing.py: 2
-# svm_functions.py: 7
+# SVM_classifiers.py: 7
 pandas == 0.23.4
-
-# old_files/data_processing.py: 6
-scikit_image == 0.14.1
 
 # CNN_classifiers.py: 12
 # ImageFiltering.py: 11
-# old_files/data_processing.py: 5
-# svm_functions.py: 10,11,12
+# SVM_classifiers.py: 10,11,12
 scikit_learn == 0.20.0
 
-# svm_functions.py: 9
+# SVM_classifiers.py: 9
 scipy == 1.1.0
