@@ -5,13 +5,10 @@ import shutil
 import numpy as np
 import pandas as pd
 from keras import backend as K
-from keras.layers import Activation, Conv2D, Dense, Dropout, Flatten, MaxPooling2D
-from keras.layers.advanced_activations import LeakyReLU
+from keras.layers import Conv2D, Dense, Dropout, Flatten, MaxPooling2D
 from keras.models import Sequential
 from keras.preprocessing.image import (
     ImageDataGenerator,
-    array_to_img,
-    img_to_array,
     load_img,
 )
 

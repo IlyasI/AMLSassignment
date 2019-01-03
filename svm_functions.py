@@ -12,7 +12,7 @@ from sklearn.decomposition import PCA
 from sklearn.model_selection import RandomizedSearchCV
 
 from CNN_functions import split_dataset_random
-from classifiers import get_metrics
+from CNN_classifiers import get_metrics
 from ImageFiltering import get_features
 
 
@@ -89,11 +89,10 @@ def run_svm_classifier(
         classifier = pickle.load(open(model_path, "rb"))
 
     y_pred = classifier.predict(X_test_flat)
-    y_true = Y_test.values
     filenames = test["file_name"]
 
     output_df, output_df_wrong, report, accuracy, confusion = get_metrics(
-        y_true, y_pred, filenames
+        Y_test, y_pred, filenames
     )
     generate_test_predictions_csv(output_df, accuracy, row_name, path_append="svm")
 
@@ -193,9 +192,4 @@ def transfer_learning_svm(row_name, load_features=False):
     )
     generate_test_predictions_csv(output_df, accuracy, row_name, path_append="resnet50")
 
-
-run_svm_classifier("eyeglasses", "./svm_saved_models/", load_model=False)
-# transfer_learning_svm("hair_color", load_features=True)
-
-# print("Classification report for classifier %s:\n%s\n"
-#      % (classifier, metrics.classification_report(Y_test, y_pred)))
+run_svm_classifier("young", "./svm_saved_models/", load_model=False)

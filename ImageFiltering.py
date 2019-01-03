@@ -5,7 +5,6 @@ import shutil
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import sklearn
 from keras import applications
 from keras.applications.resnet50 import preprocess_input
 from keras.preprocessing import image
@@ -511,6 +510,3 @@ def run_image_filtering_from_csv():
         removed_images_path="./images/removed/",
     )
     print(filtered_df.head())
-
-
-'''run_image_filtering_from_scratch()'''
