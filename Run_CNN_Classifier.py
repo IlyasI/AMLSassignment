@@ -1,6 +1,8 @@
+import sys
+
 from CNN_classifiers import cnn_classifier
 from ImageFiltering import run_image_filtering_from_scratch
-import sys
+
 
 def main(row_name, create_symlinks, load_trained_model, trained_model_path):
 
@@ -32,4 +34,3 @@ if __name__ == "__main__":
         main(row_name, create_symlinks, load_trained_model=load_trained_model, trained_model_path='trained_models/smiling/Smiling_fullmodel.h5')
     elif row_name == 'young':
         main(row_name, create_symlinks, load_trained_model=load_trained_model, trained_model_path='trained_models/young/Young_fullmodel.h5')
-          
