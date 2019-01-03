@@ -9,8 +9,10 @@ __pycache__/
 .idea/
 generated_csv/
 trained_models/
+svm_saved_models/
 old_files/
 .git.bfg-report/
+bfg.jar
 
 # C extensions
 *.so
