@@ -1,6 +1,10 @@
 # Ilyas Ibragimov AMLSassignment
 Applied Machine Learning Systems ELEC0132 (18/19) Assignment
 
+Before running first install the external packages listed in requirements.txt
+
+Note that this code was only tested on Ubuntu and may not run on your machine.
+
 ---
 ## Image Filtering:
 

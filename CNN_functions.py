@@ -413,7 +413,7 @@ def get_ImageDataGenerator(
     very accurate, but this can be useful for more difficult problems.
 
     All parameters are set to 0 or False in order to keep the original images without augmenting them.
-    RGB values are scaled to be between 0 and 1, rather than 0 and 127.
+    RGB values are scaled to be between 0 and 1, rather than 0 and 255.
 
     Parameters:
     shear_range: shear intensity value.
@@ -427,7 +427,7 @@ def get_ImageDataGenerator(
     """
 
     #gets ImageDataGenerator with specified parameters,
-    #rescale=1.0/127, reduces all RGB values to be a float between 0 and 1 rather than 0 and 127
+    #rescale=1.0/255, reduces all RGB values to be a float between 0 and 1 rather than 0 and 255
     #data_format='channels_first' specifies that the data output shape is (3,128,128), rather than (128,128,3)
     datagen = ImageDataGenerator(
         rescale=1.0 / 255,
