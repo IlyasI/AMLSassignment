@@ -430,7 +430,7 @@ def get_ImageDataGenerator(
     #rescale=1.0/127, reduces all RGB values to be a float between 0 and 1 rather than 0 and 127
     #data_format='channels_first' specifies that the data output shape is (3,128,128), rather than (128,128,3)
     datagen = ImageDataGenerator(
-        rescale=1.0 / 127,
+        rescale=1.0 / 255,
         shear_range=shear_range,
         zoom_range=zoom_range,
         zca_whitening=zca_whitening,

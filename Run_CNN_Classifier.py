@@ -31,46 +31,48 @@ if __name__ == "__main__":
     # row_name on which to classify taken from first provided command line argument:
     row_name = str(sys.argv[1])
     # create_symlinks taken from second command line argument provided:
-    create_symlinks = bool(sys.argv[2])
+    create_symlinks = eval(sys.argv[2])
+    assert isinstance(create_symlinks, bool), TypeError('create_symlinks should be a bool')
     # load_trained_model taken from third command line argument (optional: will default to True):
     if len(sys.argv) > 3:
-        load_trained_model = bool(sys.argv[3])
+        load_trained_model = eval(sys.argv[3])
+        assert isinstance(load_trained_model, bool), TypeError('load_trained_model should be a bool')
     else:
         load_trained_model = True
     # run cnn_classifier based on row_name provided as argument.
     # if load_trained_model is True, will load the already trained model from the train_model_path defined for each task.
     if row_name == "human":
         main(
-            row_name,
-            create_symlinks,
+            row_name=row_name,
+            create_symlinks=create_symlinks,
             load_trained_model=load_trained_model,
             trained_model_path="trained_models/human/Human_fullmodel.h5",
         )
     elif row_name == "eyeglasses":
         main(
-            row_name,
-            create_symlinks,
+            row_name=row_name,
+            create_symlinks=create_symlinks,
             load_trained_model=load_trained_model,
             trained_model_path="trained_models/eyeglasses/Eyeglasses_fullmodel.h5",
         )
     elif row_name == "hair_color":
         main(
-            row_name,
-            create_symlinks,
+            row_name=row_name,
+            create_symlinks=create_symlinks,
             load_trained_model=load_trained_model,
             trained_model_path="trained_models/hair_color/Hair_color_fullmodel.h5",
         )
     elif row_name == "smiling":
         main(
-            row_name,
-            create_symlinks,
+            row_name=row_name,
+            create_symlinks=create_symlinks,
             load_trained_model=load_trained_model,
             trained_model_path="trained_models/smiling/Smiling_fullmodel.h5",
         )
     elif row_name == "young":
         main(
-            row_name,
-            create_symlinks,
+            row_name=row_name,
+            create_symlinks=create_symlinks,
             load_trained_model=load_trained_model,
             trained_model_path="trained_models/young/Young_fullmodel.h5",
         )

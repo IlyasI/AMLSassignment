@@ -2,6 +2,7 @@ import logging
 import os
 import sys
 import csv
+import itertools
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -285,7 +286,35 @@ def train_classifier(
         y_true, y_pred, filenames, flatten_y_pred=True
     )
 
+    #obtain additional predictions on the extra unlabelled test data provided:
+    # get a flow from the unlabelled test set with a batch size of 1 to test the trained model:
+    test_gen_extra = CNN_functions.get_flow_from_directory(
+        test_datagen, './testing_dataset/', target_size, None, 1, False
+    )
+
+    test_gen_extra.reset()
+
+    probabilities_extra = model.predict_generator(test_gen_extra, verbose=1, steps=len(test_gen_extra))
+
+    if class_mode == "binary":
+        # np.rint rounds all the probabilities to integers, obtaining the predicted class values:
+        y_pred_extra = np.rint(probabilities_extra)
+    elif class_mode == "categorical":
+        # A different approach to get the predicted classes is needed for multiclass classification,
+        # np.argmax(axis=-1) returns the indices of the maximum values along the last axis,
+        # this corresponds to the predicted class values for the output of model.predict_generator
+        y_pred_extra = probabilities_extra.argmax(axis=-1)
+    y_pred_extra = list(map(int, y_pred_extra.flatten()))
+    filenames_extra = test_gen_extra.filenames
+
+    output_df_extra = pd.DataFrame(
+        {"filename": filenames_extra, "y_pred": y_pred_extra}
+    )
+
+    generate_unlabelled_test_predictions_csv(output_df_extra, classifier_name.lower(), path_append='CNN')
+
     return output_df, output_df_wrong, confusion, report, accuracy
+
 
 
 def get_metrics(y_true, y_pred, filenames, flatten_y_pred=False):
@@ -337,7 +366,6 @@ def get_metrics(y_true, y_pred, filenames, flatten_y_pred=False):
 
     return output_df, output_df_wrong, report, accuracy, confusion
 
-
 def prepare_for_cnn(row_name):
 
     """
@@ -367,7 +395,7 @@ def cnn_classifier(
     load_trained_model=True,
     trained_model_path="",
     create_symlinks=False,
-    target_size=(128, 128),
+    target_size=(128, 128)
 ):
 
     """
@@ -398,6 +426,7 @@ def cnn_classifier(
     # train_path could be './images/train/human' for example:
     train_path = "./images/train/" + row_name
     validate_path = "./images/validate/" + row_name
+    
     test_path = "./images/test/" + row_name
 
     # capitalizes the first letter in the row_name to obtain the classifier_name (used for labelling plots):
@@ -420,10 +449,10 @@ def cnn_classifier(
         trained_model_path=trained_model_path,
         target_size=target_size,
     )
-    generate_test_predictions_csv(output_df, accuracy, row_name)
+    generate_test_predictions_csv(output_df, accuracy, row_name, path_append='CNN')
 
 
-def generate_test_predictions_csv(output_df, accuracy, row_name, path_append=None):
+def generate_test_predictions_csv(output_df, accuracy, row_name, save_dir='./csv_predictions/', path_append=None):
 
     """
     generate_test_predictions_csv generates a csv file containing the accuracy and 
@@ -431,8 +460,8 @@ def generate_test_predictions_csv(output_df, accuracy, row_name, path_append=Non
 
     The csv format is as follow:
     <average inference accuracy>
-    <path of test file1>,<prediction for file1>
-    <path of test file2>,<prediction for file2>
+    <path of test file1>,<predicted class for file1>,<true class for file1>
+    <path of test file2>,<predicted class for file2>,<true class for file2>
 
     Parameters:
     'output_df': Dataframe of filenames, predicted classes, and actual classes as 
@@ -454,7 +483,55 @@ def generate_test_predictions_csv(output_df, accuracy, row_name, path_append=Non
     # Drop 'sort' column after sorting:
     output_df = output_df.drop("sort", axis=1)
     # Change all '0' values in y_pred to '-1', to match the format of y_true (-1 and 1):
-    output_df.loc[output_df.y_pred == 0, "y_pred"] = -1
+    # only for binary
+    if row_name != 'hair_color':
+        output_df.loc[output_df.y_pred == 0, "y_pred"] = -1
+        output_df.loc[output_df.y_true == 0, "y_true"] = -1
+
+    # generate csv_filename (e.g. task_1.csv or task_1_resnet50.csv):
+    if path_append == None:
+        csv_filename = row_name + '_pred' + ".csv"
+    else:
+        csv_filename = row_name + '_pred' + "_" + path_append + ".csv"
+
+    # write accuracy, filenames, and predictions to csv named csv_filename:
+    with open(save_dir+csv_filename, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow([accuracy])
+        for i in range(len(output_df)):
+            writer.writerow([output_df["filename"][i], output_df["y_pred"][i], output_df['y_true'][i]])
+
+def generate_unlabelled_test_predictions_csv(output_df, row_name, path_append=None):
+
+    """
+    generate_unlablled_test_predictions_csv generates a csv file containing the 
+    predictions on the test set for a given task. 
+
+    The csv format is as follow:
+    <path of test file1>,<predicted class for file1>
+    <path of test file2>,<predicted class for file2>
+
+    Parameters:
+    'output_df': Dataframe of filenames and predicted classes
+    'row_name': row_name of the current task, e.g. 'human' or 'hair_color'.
+    'path_append': optional string to append to end of csv filename (before the file extension)
+
+    Returns:
+    None
+    """
+
+    # Generate temporary column called 'sort' in output_df from image numbers extracted from the image path:
+    output_df["sort"] = (
+        output_df["filename"].str.extract("\/(\d+)\.", expand=False).astype(int)
+    )
+    # The 'sort' column is used to sort the dataframe by ascending file numbers:
+    output_df = output_df.sort_values("sort", ascending=True).reset_index(drop=True)
+    # Drop 'sort' column after sorting:
+    output_df = output_df.drop("sort", axis=1)
+    # Change all '0' values in y_pred to '-1', to match the format of y_true (-1 and 1)
+    # only for binary tasks:
+    if row_name != 'hair_color':
+        output_df.loc[output_df.y_pred == 0, "y_pred"] = -1
 
     # Get the task number based on the row_name:
     if row_name == "smiling":
@@ -469,14 +546,12 @@ def generate_test_predictions_csv(output_df, accuracy, row_name, path_append=Non
         task_num = 5
     # generate csv_filename (e.g. task_1.csv or task_1_resnet50.csv):
     if path_append == None:
-        csv_filename = "task_" + str(task_num) + ".csv"
+        csv_filename = "_" + str(task_num) + ".csv"
     else:
         csv_filename = "task_" + str(task_num) + "_" + path_append + ".csv"
 
     # write accuracy, filenames, and predictions to csv named csv_filename:
     with open(csv_filename, "w", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow([accuracy])
         for i in range(len(output_df)):
-            writer.writerow([output_df["filename"][i], output_df["y_pred"][i]])
-
+            writer.writerow([os.path.basename(output_df["filename"][i]), output_df["y_pred"][i]])
