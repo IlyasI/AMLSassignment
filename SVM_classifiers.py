@@ -77,7 +77,7 @@ def create_image_dataset(dataframe, images_path="./images/"):
     return img_arrays
 
 
-def get_X_Y_from_dataset(image_dataset, row_name, labels_dataframe):
+def get_X_Y_from_dataset(image_dataset, row_name=None, labels_dataframe=None, unlabelled=False):
     
     '''
     get_X_Y_from_dataset further splits a dataframe into two arrays, X and Y.
@@ -94,7 +94,6 @@ def get_X_Y_from_dataset(image_dataset, row_name, labels_dataframe):
     Y: numpy array of corresponding image labels
     '''
     
-    df = labels_dataframe
     #Use sklearn PCA function with a fixed n_components=128 for all images.
     pca = PCA(n_components=128)
     X = []  # images
@@ -103,11 +102,13 @@ def get_X_Y_from_dataset(image_dataset, row_name, labels_dataframe):
         value_PCA = pca.fit_transform(value)
 
         X.append(value_PCA)
-        #gets the class label for the current key (file number) from the supplied labels_dataframe:
-        label = df.loc[df["file_name"] == key, row_name].item()
-        if label == -1:
-            label = 0
-        Y.append(label)
+        if unlabelled==False:
+            df = labels_dataframe
+            #gets the class label for the current key (file number) from the supplied labels_dataframe:
+            label = df.loc[df["file_name"] == key, row_name].item()
+            if label == -1:
+                label = 0
+            Y.append(label)
 
     #convert X Y lists to arrays
     X = np.array(X)
@@ -133,17 +134,24 @@ def run_svm_classifier(
     '''
     
     model_path = model_save_load_path + row_name + "_svm_trained.sav"
-
+    #split filtered dataset into train, validate and test sets:
     train, validate, test = prepare_for_svm(seed=0)
 
+    #get flattened versions of all the images RGB data:
     image_dataset_train = create_image_dataset(train, images_path=images_path)
     image_dataset_test = create_image_dataset(test, images_path=images_path)
+    test_unlabelled = pd.DataFrame(range(0,100),columns=['file_name'])
+    image_dataset_unlabelled_test = create_image_dataset(test_unlabelled, images_path='./testing_dataset/flow_subdir/')
     X_train, Y_train = get_X_Y_from_dataset(image_dataset_train, row_name, train)
     X_test, Y_test = get_X_Y_from_dataset(image_dataset_test, row_name, test)
+    #X_test_unlabelled is the unlabelled test image data, Y_test_unlabelled is blank:
+    X_test_unlabelled, Y_test_unlabelled = get_X_Y_from_dataset(image_dataset_unlabelled_test)
     n_train, nx_train, ny_train = X_train.shape
     n_test, nx_test, ny_test = X_test.shape
+    n_test_u, nx_test_u, ny_test_u = X_test_unlabelled.shape
     X_train_flat = X_train.reshape((n_train, nx_train * ny_train))
     X_test_flat = X_test.reshape((n_test, nx_test * ny_test))
+    X_test_u_flat = X_test_unlabelled.reshape((n_test_u, nx_test_u * ny_test_u))
 
     if load_model == False:
 
@@ -168,6 +176,15 @@ def run_svm_classifier(
     )
     generate_test_predictions_csv(output_df, accuracy, row_name, path_append="svm")
 
+    y_pred_u = classifier.predict(X_test_u_flat)
+    filenames_u = image_dataset_unlabelled_test['file_name']
+    output_df_u = pd.DataFrame(
+        {"filename": filenames_u, "y_pred": y_pred_u}
+    )
+    generate_unlabelled_test_predictions_csv(
+        output_df_u, row_name, path_append="SVM"
+    )
+
 
 def get_svm_classifier(randomized_search=True, n_iter=10):
     '''
@@ -185,7 +202,32 @@ def get_svm_classifier(randomized_search=True, n_iter=10):
 
 
 def generate_test_predictions_csv(
-    output_df, accuracy, row_name, path_append="resnet50"
+    output_df, accuracy, row_name, save_dir='./csv_predictions/', path_append="ResNet50"
+):
+    output_df["sort"] = output_df["filename"].astype(int)
+    output_df = output_df.sort_values("sort", ascending=True).reset_index(drop=True)
+    output_df = output_df.drop("sort", axis=1)
+
+    # Change all '0' values in y_pred to '-1', to match the format of y_true (-1 and 1):
+    # only for binary
+    if row_name != 'hair_color':
+        output_df.loc[output_df.y_pred == 0, "y_pred"] = -1
+        output_df.loc[output_df.y_true == 0, "y_true"] = -1
+
+    # generate csv_filename:
+    if path_append == None:
+        csv_filename = row_name + '_pred' + ".csv"
+    else:
+        csv_filename = row_name + '_pred' + "_" + path_append + ".csv"
+
+    with open(save_dir+csv_filename, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow([accuracy])
+        for i in range(len(output_df)):
+            writer.writerow([output_df["filename"][i], output_df["y_pred"][i], output_df['y_true'][i]])
+
+def generate_unlabelled_test_predictions_csv(
+    output_df, row_name, path_append="ResNet50"
 ):
     output_df["sort"] = output_df["filename"].astype(int)
     output_df = output_df.sort_values("sort", ascending=True).reset_index(drop=True)
@@ -205,7 +247,6 @@ def generate_test_predictions_csv(
 
     with open(csv_filename, "w", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow([accuracy])
         for i in range(len(output_df)):
             writer.writerow([output_df["filename"][i], output_df["y_pred"][i]])
 
@@ -266,3 +307,25 @@ def transfer_learning_svm(row_name, load_features=False):
         y_true, y_pred, filenames
     )
     generate_test_predictions_csv(output_df, accuracy, row_name, path_append="resnet50")
+
+    test_u_df = pd.DataFrame({'file_name':range(1,101)})
+    feature_u_df = get_features(
+            img_df=test_u_df,
+            network="resnet50",
+            pooling="max",
+            images_path="./testing_dataset/flow_subdir",
+            df_to_pickle=False,
+            pickle_save_dir="generated_csv/transfer_learning/",
+        )
+    feature_u_list = np.array(feature_u_df["features"].tolist())
+    feature_u_list = feature_u_list.reshape((feature_u_list.shape[0], -1))
+    y_pred_u = classifier.predict(feature_u_list)
+
+    filenames_u = test_u_df['file_name']
+    output_u_df = pd.DataFrame(
+        {"filename": filenames_u, "y_pred": y_pred_u}
+    )
+
+    generate_unlabelled_test_predictions_csv(
+        output_u_df, row_name, path_append="ResNet50"
+    )
