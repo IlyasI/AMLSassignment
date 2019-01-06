@@ -5,6 +5,10 @@ Before running first install the external packages listed in requirements.txt
 
 Note that this code was only tested on Ubuntu and may not run on your machine.
 
+Predictions for each task on an additional unlabelled test set are provided in csv files named task_1_CNN.csv, task_1_ResNet50.csv, etc. The csv files labelled 'CNN' contain predictions obtained with the custom CNN model trained from scratch. The files labelled 'ResNet50' contain predictions obtained with the pretrained ResNet50 to linear SVM classifier transfer learning model.
+
+The 'csv_predictions' folder contain csv files with further predictions on a labelled test set generated from part of the original image dataset. These csv files also show the test accuracy at the top.
+
 ---
 ## Image Filtering:
 
