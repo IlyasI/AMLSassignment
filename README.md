@@ -1,11 +1,15 @@
 # Ilyas Ibragimov AMLSassignment
-Applied Machine Learning Systems ELEC0132 (18/19) Assignment
+Applied Machine Learning Systems ELEC0132 (18/19) Assignment Code Base
 
-**Before running first install the external packages listed in requirements.txt**
+**Before running first install the external Python 3 packages listed in requirements.txt**
 
 This code was only tested on Ubuntu and may not run on your machine.
 
-The saved train models were not uploaded to GitHub due to size limitations, however they are available on Google Drive: https://goo.gl/wXERtg.
+The saved trained models for the custom CNN classifier were not uploaded to GitHub due to size limitations, however they are available on Google Drive (https://goo.gl/wXERtg) under the 'trained_models' directory. Without these trained models, each network will have to be trained from scratch, taking up to an hour for some tasks.
+
+The file containing the already extracted ResNet50 image features for the transfer learning classifier was also not uploaded due to size restrictions. It can also be found on Google Drive (https://goo.gl/wXERtg) in ./generated_csv/transfer_learning/image_features_resnet50_max.pkl. Extracting these image features from scratch may take up to 30 minutes.
+
+Note: The programs are hardcoded with specific relative paths to directories, therefore the directory structure be kept identical (e.g. images in a './images/' directory, saved trained models in a './trained_models/' directory. Further the files should be kept with the same names (e.g. the saved ResNet50 image feature file should be kept at 'image_features_resnet50_max.pkl'. Otherwise, the paths to the files should be changed throughout the code base.
 
 ---
 Predictions for each task on an additional unlabelled test set are provided in csv files named task_1_CNN.csv, task_1_ResNet50.csv, etc. The csv files labelled 'CNN' contain predictions obtained with the custom CNN model trained from scratch. The files labelled 'ResNet50' contain predictions obtained with the pretrained ResNet50 to linear SVM classifier transfer learning model.
