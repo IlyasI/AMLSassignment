@@ -76,7 +76,9 @@ Example uses:
 'python Run_Transfer_Learning_Classifier.py hair_color False' will run the SVM classifier for the hair color classification task by extracting the features from scratch.
 
 ---
-## Linear SVM Classification:
+## Additional Linear SVM Classification:
+
+Although this was not covered in the report, Linear SVM classifiers were also tested on raw RGB values, rather than image features. They obtained significantly worse results than both CNN classifiers for all tasks.
 
 To run the linear SVM classifier (on raw RGB pixel values) code, run the following (without the quotes) in the command line:
 
