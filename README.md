@@ -1,4 +1,4 @@
-# Ilyas Ibragimov AMLSassignment
+# AMLSassignment
 Applied Machine Learning Systems ELEC0132 (18/19) Assignment Code Base
 
 **Before running first install the external Python 3 packages listed in requirements.txt**
