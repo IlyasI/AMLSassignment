@@ -6,7 +6,7 @@ Applied Machine Learning Systems ELEC0132 (18/19) Assignment Code Base
 **Saved models and features which were over GitHub's file size limit can be found on Google Drive: https://goo.gl/wXERtg.**
 The saved models and features are necessary if you do not want to train the models from scratch.
 
-This code was only tested on Ubuntu and may not run on your machine.
+This code was only tested on Ubuntu and may not run on Windows.
 
 The saved trained models for the custom CNN classifier were not uploaded to GitHub due to size limitations, however they are available on Google Drive (https://goo.gl/wXERtg) under the 'trained_models' directory. Without these trained models, each network will have to be trained from scratch, taking up to an hour for some tasks.
 
