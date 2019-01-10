@@ -15,6 +15,19 @@ The file containing the already extracted ResNet50 image features for the transf
 Note: The programs are hardcoded with specific relative paths to directories, therefore the directory structure be kept identical (e.g. images in a './images/' directory, saved trained models in a './trained_models/' directory. Further the files should be kept with the same names (e.g. the saved ResNet50 image feature file should be kept at 'image_features_resnet50_max.pkl'. Otherwise, the paths to the files and directories should be changed throughout the code base.
 
 ---
+##Experimental Results
+
+Testing accuracy results of the custom CNN architecture and transfer learning with ResNet50 pretrained on ImageNet. Both were evaluated on the same out-of-sample test set.
+
+| Task       | Custom CNN Model Accuracy | ResNet50 Transfer Learning Accuracy |
+|------------|---------------------------|-------------------------------------|
+| Smiling    | 0.9288                    | 0.9124                              |
+| Young      | 0.8883                    | 0.8697                              |
+| Eyeglasses | 0.9989                    | 0.9824                              |
+| Human      | 1.0000                    | 1.0000                              |
+| Hair Color | 0.8912                    | 0.9385                              |
+
+---
 Predictions for each task on an additional unlabelled test set are provided in csv files named task_1_CNN.csv, task_1_ResNet50.csv, etc. The csv files labelled 'CNN' contain predictions obtained with the custom CNN model trained from scratch. The files labelled 'ResNet50' contain predictions obtained with the pretrained ResNet50 to linear SVM classifier transfer learning model.
 
 The 'csv_predictions' folder contain csv files with further predictions on a labelled test set generated from part of the original image dataset. These csv files also show the test accuracy at the top.
