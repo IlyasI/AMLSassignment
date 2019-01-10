@@ -1,6 +1,23 @@
 # AMLSassignment
 Applied Machine Learning Systems ELEC0132 (18/19) Assignment Code Base
 
+---
+## Experimental Results
+
+Testing accuracy results of the custom CNN architecture and transfer learning with ResNet50 pretrained on ImageNet. Both were evaluated on the same out-of-sample test set.
+
+| Task       | Custom CNN Model Accuracy | ResNet50 Transfer Learning Accuracy |
+|------------|---------------------------|-------------------------------------|
+| Smiling    | 0.9288                    | 0.9124                              |
+| Young      | 0.8883                    | 0.8697                              |
+| Eyeglasses | 0.9989                    | 0.9824                              |
+| Human      | 1.0000                    | 1.0000                              |
+| Hair Color | 0.8912                    | 0.9385                              |
+
+---
+
+## How To Run
+
 **Before running first install the external Python 3 packages listed in requirements.txt**
 
 **Saved models and features which were over GitHub's file size limit can be found on Google Drive: https://goo.gl/wXERtg.**
@@ -13,19 +30,6 @@ The saved trained models for the custom CNN classifier were not uploaded to GitH
 The file containing the already extracted ResNet50 image features for the transfer learning classifier was also not uploaded due to size restrictions. It can also be found on Google Drive (https://goo.gl/wXERtg) in ./generated_csv/transfer_learning/image_features_resnet50_max.pkl. Extracting these image features from scratch may take up to 30 minutes.
 
 Note: The programs are hardcoded with specific relative paths to directories, therefore the directory structure be kept identical (e.g. images in a './images/' directory, saved trained models in a './trained_models/' directory. Further the files should be kept with the same names (e.g. the saved ResNet50 image feature file should be kept at 'image_features_resnet50_max.pkl'. Otherwise, the paths to the files and directories should be changed throughout the code base.
-
----
-##Experimental Results
-
-Testing accuracy results of the custom CNN architecture and transfer learning with ResNet50 pretrained on ImageNet. Both were evaluated on the same out-of-sample test set.
-
-| Task       | Custom CNN Model Accuracy | ResNet50 Transfer Learning Accuracy |
-|------------|---------------------------|-------------------------------------|
-| Smiling    | 0.9288                    | 0.9124                              |
-| Young      | 0.8883                    | 0.8697                              |
-| Eyeglasses | 0.9989                    | 0.9824                              |
-| Human      | 1.0000                    | 1.0000                              |
-| Hair Color | 0.8912                    | 0.9385                              |
 
 ---
 Predictions for each task on an additional unlabelled test set are provided in csv files named task_1_CNN.csv, task_1_ResNet50.csv, etc. The csv files labelled 'CNN' contain predictions obtained with the custom CNN model trained from scratch. The files labelled 'ResNet50' contain predictions obtained with the pretrained ResNet50 to linear SVM classifier transfer learning model.
