@@ -121,7 +121,7 @@ def run_svm_classifier(
 ):
 
     '''
-    run_svm_classifier, trains and evaluates the Linear SVM classifier on the filtered dataset.
+    run_svm_classifier, trains and evaluates the Linear SVM classifier on the filtered datasets raw RGB values (no feature extraction).
     Randomized search with 3 fold cross validation is used to tune the 'C' parameter.
     Generates a csv (e.g. task_4_svm.csv) that contains the test accuracy and test predictions for each image.
     The trained model is saved as a Pickle file (these take up more than 100MB of space each)
@@ -131,6 +131,8 @@ def run_svm_classifier(
     model_save_load_path: path to directory where to save or load the trained model pickle file.
     images_path: path to the image dataset directory.
     load_model: Boolean, whether to load a trained model from pickle file or train from scratch.
+    
+    Returns: None
     '''
     
     model_path = model_save_load_path + row_name + "_svm_trained.sav"
@@ -188,6 +190,19 @@ def run_svm_classifier(
 
 def get_svm_classifier(randomized_search=True, n_iter=10):
     '''
+    get_svm_classifier returns a sklearn linear SVC object with a balanced class weight and scaled gamma.
+    Further, if randomized_search is set to True, the best C value is found with randomized search which
+    samples C values from a scaled exponential function over n_iter iterations. Randomized search will run
+    on all processor cores.
+    
+    Parameters:
+    randomized_search: Boolean, if True will search for the best C value with randomized search, otherwise C is left at
+                       the default value of 1.
+    n_iter: integer, defines how many iterations randomized_search will run for. If n_iter is left at the default of 10,
+            that means the SVC will be trained 30 times (3 folds for cross validation multiplied by 10 iterations)
+            
+    Returns:
+    classifier: Sklearn SVC object with the described parameters. 
     
     '''
     svc = svm.SVC(gamma="scale", kernel="linear", verbose=True, class_weight="balanced")
@@ -204,6 +219,22 @@ def get_svm_classifier(randomized_search=True, n_iter=10):
 def generate_test_predictions_csv(
     output_df, accuracy, row_name, save_dir='./csv_predictions/', path_append="ResNet50"
 ):
+    """
+    generate_test_predictions_csv generates a csv file containing the accuracy and 
+    predictions on the test set for a given task. 
+    The csv format is as follow:
+    <average inference accuracy>
+    <path of test file1>,<predicted class for file1>,<true class for file1>
+    <path of test file2>,<predicted class for file2>,<true class for file2>
+    Parameters:
+    'output_df': Dataframe of filenames, predicted classes, and actual classes.
+    'accuracy': Accuracy of the predictions, as returned by the get_metrics function.
+    'row_name': row_name of the current task, e.g. 'human' or 'hair_color'.
+    'save_dir': directory where to save the csv file.
+    'path_append': optional string to append to end of csv filename (before the file extension).
+    Returns:
+    None
+    """
     output_df["sort"] = output_df["filename"].astype(int)
     output_df = output_df.sort_values("sort", ascending=True).reset_index(drop=True)
     output_df = output_df.drop("sort", axis=1)
@@ -251,10 +282,26 @@ def generate_unlabelled_test_predictions_csv(
             writer.writerow([output_df["filename"][i], output_df["y_pred"][i]])
 
 
-"""https://arxiv.org/abs/1403.6382"""
-
-
 def transfer_learning_svm(row_name, load_features=False):
+    '''
+    transfer_learning_svm performs transfer learning by pipelining image feature extraction 
+    with a pretrained ResNet50 network to a linear SVM classifier. More on transfer learning can
+    be found at https://arxiv.org/abs/1403.6382. The function first reads the filtered dataset
+    from ./generated_csv/attribute_list_filtered.csv. Then it either extracts their features from
+    scratch with ResNet50 with max pooling trained on ImageNet, or if the features were already extracted
+    it can load them from a pickle file. Once these features are preprocessed they are used to train and evaluate a 
+    linear SVM classifier with 3 fold cross-validation and randomized search to find the optimal C parameter.
+    Lastly, predictions are generated for both a labelled test set made up of 20% of the filtered iamges, and an
+    unlabelled test set of 100 images. A CSV file will be generated for each test set containing the predicted classes.
+    
+    Parameters:
+    row_name: row name on which to run the model on ('smiling', 'eyeglasses', 'young', 'human', 'hair_color')
+    load_features: boolean, if True will load the extracted image features from 
+                   "generated_csv/transfer_learning/image_features_resnet50_max.pkl", otherwise will extract
+                   from scratch (may take longer).
+                   
+    Returns: None
+    '''
     filteredDf = pd.read_csv("./generated_csv/attribute_list_filtered.csv")
     # Drop rows where hair_color = -1, these are mislabeled and impact the accuracy of the trained model
     if row_name == "hair_color":
