@@ -1,6 +1,8 @@
 # AMLSassignment
 Applied Machine Learning Systems ELEC0132 (18/19) Assignment Code Base
 
+Assignment details and my report for this project can be found in the 'Report' directory.
+
 ---
 ## Experimental Results
 
