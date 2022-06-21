@@ -17,7 +17,7 @@ matplotlib == 3.0.2
 # CNN_functions.py: 5
 # ImageFiltering.py: 6
 # SVM_classifiers.py: 6
-numpy == 1.15.4
+numpy == 1.22.0
 
 # CNN_classifiers.py: 8
 # CNN_functions.py: 6
