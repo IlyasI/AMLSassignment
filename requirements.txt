@@ -7,7 +7,7 @@
 Keras == 2.2.4
 
 # SVM_classifiers.py: 8
-Pillow == 6.2.0
+Pillow == 9.3.0
 
 # CNN_classifiers.py: 6
 # ImageFiltering.py: 5
